@@ -28,3 +28,6 @@ main = launchAff_ $ runSpec [consoleReporter] do
 
     it "Parses a sexpr with spaces" do
       parseNewick "( A, B ,  C );" `shouldEqual` Right ["A", "B", "C"]
+
+    it "Parses a single node with a branch length" do
+      parseNewick "A:1.0;" `shouldEqual` Right ["A"]

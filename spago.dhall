@@ -21,6 +21,8 @@ to generate this file without the comments in this block.
   , "either"
   , "graphs"
   , "identity"
+  , "maybe"
+  , "numbers"
   , "parsing"
   , "prelude"
   , "psci-support"
