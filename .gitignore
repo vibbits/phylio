@@ -2,12 +2,14 @@
 .psci_modules
 bower_components
 node_modules
+.node-version
 
 # Generated files
 .psci
 output
 .purs-repl
 .spago
+.psc-ide-port
 
 # Editor files
 *~
