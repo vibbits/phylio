@@ -1,0 +1,38 @@
+{
+  "name": "phylio",
+  "version": "1.0.0",
+  "description": "Read, write, and manipulate phylogenetic trees",
+  "main": "dist/index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "spago build",
+    "test": "spago test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vibbits/phylio.git"
+  },
+  "keywords": [
+    "phylogenetic",
+    "tree",
+    "newick",
+    "NHX",
+    "PhyloXML",
+    "NEXUS",
+    "PureScript",
+    "TypeScript"
+  ],
+  "author": "James Collier",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vibbits/phylio/issues"
+  },
+  "homepage": "https://github.com/vibbits/phylio#readme",
+  "devDependencies": {
+    "purescript": "^0.14.5",
+    "spago": "^0.20.3",
+    "typescript": "^4.4.4"
+  }
+}
