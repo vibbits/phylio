@@ -1,21 +1,34 @@
-module Bio.Phylogeny.Parser (Phylogeny, parseNewick) where
+module Bio.Phylogeny.Parser (Phylogeny(..), parseNewick) where
 
 import Prelude hiding (between)
 
 import Control.Alt ((<|>))
-import Data.Array (fromFoldable, some)
+import Control.Lazy (fix)
+import Data.Array (fromFoldable, some, many)
 import Data.Bifunctor (lmap)
 import Data.Either (Either)
 import Data.Identity (Identity)
-import Data.Maybe (Maybe(..))
+import Data.Interpolate (i)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number as N
 import Data.String.CodeUnits (fromCharArray)
+import Data.Tuple (Tuple)
+import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser (ParserT, fail, runParser)
 import Text.Parsing.Parser.Combinators (between, many1, optionMaybe, optional, sepBy, try)
 import Text.Parsing.Parser.String (char, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
 
-type Phylogeny = Array String
+--type Phylogeny = Array String
+data Phylogeny = Leaf (Tuple String Number)
+               | Internal (Array Phylogeny)
+
+derive instance eqPhylogeny :: Eq Phylogeny
+
+instance Show Phylogeny where
+  show (Leaf (n /\ l)) = i "Leaf (" n ", " l ")"
+  show (Internal as) = i "Internal " (show as)
+
 
 type Parser a = ParserT String Identity a
 
@@ -23,18 +36,18 @@ parseNewick :: String -> Either String Phylogeny
 parseNewick input = lmap show $ runParser input newickParser
 
 newickParser :: Parser Phylogeny
-newickParser = do
-  tree <- treeNodes <|> singleNode
-  _ <- char ';'
-  pure tree
+newickParser = subTree <* char ';'
 
-name :: Parser String
+subTree :: Parser Phylogeny
+subTree = fix $ \p -> internal p <|> leaf
+
+name :: Parser (Tuple String Number)
 name = do
-  _ <- skipSpaces
-  name' <- fromCharArray <$> some letter
-  _ <- optionMaybe withBranchLength
-  _ <- skipSpaces
-  pure name'
+  skipSpaces
+  name' <- fromCharArray <$> many letter
+  len <- length <|> pure 0.0
+  skipSpaces
+  pure (name' /\ len)
 
 number :: Parser Number
 number = do
@@ -45,17 +58,19 @@ number = do
     Nothing -> fail "Not a number"
     Just num -> pure num
 
-withBranchLength :: Parser Number
-withBranchLength = do
-  _ <- char ':'
-  num <- number
-  pure num
+length :: Parser Number
+length = char ':' *> number
 
-singleNode :: Parser Phylogeny
-singleNode =
-  pure <$> name
+branch :: Parser Phylogeny -> Parser Phylogeny
+branch pars = do
+  tree <- pars
+  _ <- name <|> pure ("" /\ 0.0)
+  pure tree
 
-treeNodes :: Parser Phylogeny
-treeNodes = do
-  lst <- between (string "(") (string ")") (name `sepBy` char ',')
-  pure $ fromFoldable lst
+leaf :: Parser Phylogeny
+leaf = Leaf <$> name
+
+internal :: Parser Phylogeny -> Parser Phylogeny
+internal pars = do
+  lst <- between (string "(") (string ")") (branch pars `sepBy` char ',')
+  pure $ Internal (fromFoldable lst)
