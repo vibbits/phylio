@@ -34,6 +34,7 @@ instance showPhylogeny :: Show Phylogeny where
 type Parser a
   = ParserT String Identity a
 
+-- | Parse phylogenies serialised to the legacy Newick format
 parseNewick :: String -> Either String Phylogeny
 parseNewick input = lmap show $ runParser input newickParser
 
