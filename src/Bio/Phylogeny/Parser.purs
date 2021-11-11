@@ -1,4 +1,4 @@
-module Bio.Phylogeny.Parser (Phylogeny(..), parseNewick) where
+module Bio.Phylogeny.Parser (Phylogeny(..), Node, parseNewick) where
 
 import Prelude hiding (between)
 
@@ -19,15 +19,16 @@ import Text.Parsing.Parser.Combinators (between, many1, optionMaybe, optional, s
 import Text.Parsing.Parser.String (char, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
 
---type Phylogeny = Array String
-data Phylogeny = Leaf (Tuple String Number)
-               | Internal (Array Phylogeny)
+type Node = Tuple String Number
+
+data Phylogeny = Leaf Node
+               | Internal Node (Array Phylogeny)
 
 derive instance eqPhylogeny :: Eq Phylogeny
 
 instance Show Phylogeny where
   show (Leaf (n /\ l)) = i "Leaf (" n ", " l ")"
-  show (Internal as) = i "Internal " (show as)
+  show (Internal n as) = i "Internal " (show n) ": " (show as)
 
 
 type Parser a = ParserT String Identity a
@@ -73,4 +74,5 @@ leaf = Leaf <$> name
 internal :: Parser Phylogeny -> Parser Phylogeny
 internal pars = do
   lst <- between (string "(") (string ")") (branch pars `sepBy` char ',')
-  pure $ Internal (fromFoldable lst)
+  parent <- try name
+  pure $ Internal parent (fromFoldable lst)
