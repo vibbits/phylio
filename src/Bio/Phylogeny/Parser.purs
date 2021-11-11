@@ -1,37 +1,38 @@
 module Bio.Phylogeny.Parser (Phylogeny(..), Node, parseNewick) where
 
 import Prelude hiding (between)
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
-import Data.Array (fromFoldable, some, many)
+import Data.Array (fromFoldable, many)
 import Data.Bifunctor (lmap)
 import Data.Either (Either)
 import Data.Identity (Identity)
 import Data.Interpolate (i)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Number as N
 import Data.String.CodeUnits (fromCharArray)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser (ParserT, fail, runParser)
-import Text.Parsing.Parser.Combinators (between, many1, optionMaybe, optional, sepBy, try)
+import Text.Parsing.Parser.Combinators (between, many1, optional, sepBy, try)
 import Text.Parsing.Parser.String (char, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
 
-type Node = Tuple String Number
+type Node
+  = Tuple String Number
 
-data Phylogeny = Leaf Node
-               | Internal Node (Array Phylogeny)
+data Phylogeny
+  = Leaf Node
+  | Internal Node (Array Phylogeny)
 
 derive instance eqPhylogeny :: Eq Phylogeny
 
-instance Show Phylogeny where
+instance showPhylogeny :: Show Phylogeny where
   show (Leaf (n /\ l)) = i "Leaf (" n ", " l ")"
   show (Internal n as) = i "Internal " (show n) ": " (show as)
 
-
-type Parser a = ParserT String Identity a
+type Parser a
+  = ParserT String Identity a
 
 parseNewick :: String -> Either String Phylogeny
 parseNewick input = lmap show $ runParser input newickParser
@@ -62,17 +63,11 @@ number = do
 length :: Parser Number
 length = char ':' *> number
 
-branch :: Parser Phylogeny -> Parser Phylogeny
-branch pars = do
-  tree <- pars
-  _ <- name <|> pure ("" /\ 0.0)
-  pure tree
-
 leaf :: Parser Phylogeny
 leaf = Leaf <$> name
 
 internal :: Parser Phylogeny -> Parser Phylogeny
 internal pars = do
-  lst <- between (string "(") (string ")") (branch pars `sepBy` char ',')
+  lst <- between (string "(") (string ")") (pars `sepBy` char ',')
   parent <- try name
   pure $ Internal parent (fromFoldable lst)

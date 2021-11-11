@@ -32,6 +32,7 @@
   "homepage": "https://github.com/vibbits/phylio#readme",
   "devDependencies": {
     "purescript": "^0.14.5",
+    "purty": "^7.0.0",
     "spago": "^0.20.3",
     "typescript": "^4.4.4"
   }
