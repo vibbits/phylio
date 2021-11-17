@@ -4,22 +4,25 @@ import Prelude hiding (between)
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Control.Monad.State (State, evalState, get, modify)
 import Data.Array as A
 import Data.Bifunctor (lmap)
 import Data.Either (Either)
-import Data.Foldable (class Foldable, foldMap, foldl, foldlDefault, foldr, foldrDefault, maximum)
+import Data.Enum (succ)
+import Data.Foldable (class Foldable, foldMap, foldl, foldr, foldrDefault, maximum)
 import Data.Graph as G
 import Data.Identity (Identity)
 import Data.Int as I
 import Data.Interpolate (i)
-import Data.List (List(Nil))
+import Data.List (List(Nil), union)
 import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust)
+import Data.Newtype (class Newtype)
 import Data.Number as N
 import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Data.Tuple (Tuple, fst, snd)
+import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser (ParserT, fail, runParser)
 import Text.Parsing.Parser.Combinators (between, many1, optional, optionMaybe, sepBy, try)
@@ -40,7 +43,8 @@ data NodeType
 type NodeName
   = String
 
-type NodeIdentifier = Maybe Int
+type NodeIdentifier
+  = Int
 
 newtype PNode
   = PNode
@@ -52,10 +56,12 @@ newtype PNode
   }
 
 newtype Network
-  = Network (G.Graph NodeName PNode)
+  = Network (G.Graph NodeIdentifier PNode)
+
+derive instance newtypeNetwork :: Newtype Network _
 
 type Phylogeny
-  = { root :: Maybe NodeName
+  = { root :: NodeIdentifier
     , network :: Network
     }
 
@@ -77,8 +83,11 @@ instance showGraph :: Show Network where
   show (Network g) = show $ A.fromFoldable $ G.topologicalSort g
 
 -- This is the second-stage intermediate representation
-type NewickNode = Tuple NodeIdentifier (Tuple PNode (List NodeIdentifier))
-type NewickGraph = Array NewickNode
+type NewickNode
+  = Tuple NodeIdentifier (Tuple PNode (List NodeIdentifier))
+
+type NewickGraph
+  = Array NewickNode
 
 -- This is the first-stage intermediate representation
 data NewickTree a
@@ -93,16 +102,13 @@ instance functorNewickTree :: Functor NewickTree where
 instance foldableNewickTree :: Foldable NewickTree where
   foldl f acc (Leaf n) = f acc n
   foldl f acc (Internal p cs) = foldl (foldl f) (f acc p) cs
-
   foldMap f (Leaf n) = f n
   foldMap f (Internal p cs) = f p <> foldMap (foldMap f) cs
-
   foldr f = foldrDefault f
 
 instance traverseNewickTree :: Traversable NewickTree where
   traverse action (Leaf n) = Leaf <$> action n
   traverse action (Internal p cs) = Internal <$> action p <*> traverse (traverse action) cs
-
   sequence = sequenceDefault
 
 instance showNewickTree :: Show a => Show (NewickTree a) where
@@ -119,8 +125,7 @@ parseNewick input = lmap show $ runParser input newickParser
 newickParser :: Parser Phylogeny
 newickParser = do
   tree <- subTree <* char ';'
-  let net = flattenTree tree
-  pure { root: (\(PNode { name }) -> name ) <<< fst <<< snd <$> A.head net, network: Network $ G.fromMap $ M.empty } --Network $ G.fromMap $ M.fromFoldable net }
+  pure $ interpretIntermediate tree
 
 subTree :: Parser (NewickTree PNode)
 subTree = fix $ \p -> internal p <|> leaf
@@ -146,11 +151,8 @@ namep nt = do
   len <- length <|> pure 0.0
   skipSpaces
   case ref of
-    Just (id /\ nodet) ->
-      pure $ PNode { name: name', node: nodet, branchLength: len, attributes: M.empty, ref: Just id }
-    Nothing ->
-      pure $ PNode { name: name', node: nt, branchLength: len, attributes: M.empty, ref: Nothing }
-  
+    Just (id /\ nodet) -> pure $ PNode { name: name', node: nodet, branchLength: len, attributes: M.empty, ref: Just id }
+    Nothing -> pure $ PNode { name: name', node: nt, branchLength: len, attributes: M.empty, ref: Nothing }
 
 number :: Parser Number
 number = do
@@ -172,15 +174,67 @@ internal pars = do
   lst <- between (string "(") (string ")") (pars `sepBy` char ',')
   parent <- try $ namep Clade
   pure $ Internal parent $ A.fromFoldable lst
-  -- let children = L.concat $ L.fromFoldable <$> lst
-  -- parent@(PNode { ref }) <- try $ namep Clade
-  -- pure $ [( ref /\ ( parent /\ (fst <$> children) ) )] <> (fromFoldable children)
 
-flattenTree :: NewickTree PNode -> NewickGraph
-flattenTree tree =
+ancestor :: NewickTree PNode -> PNode
+ancestor (Leaf l) = l
+ancestor (Internal p _) = p
+
+getRef :: PNode -> Maybe Int
+getRef (PNode { ref }) = ref
+  
+interpretIntermediate :: NewickTree PNode -> Phylogeny
+interpretIntermediate tree =
   let
-    lastRef :: Int
-    lastRef = fromMaybe 0 $
-              (_ + 1) <$> (maximum $ A.catMaybes $ (\(PNode{ ref }) -> ref) <$> foldl (\a b -> a <> [b]) [] tree)
+    startRef :: Int
+    startRef =
+      fromMaybe 0                                    -- default to 0 if there are no pre-assigned refs
+        $ (_ + 1)                                    -- add 1 to this ref
+        <$> ( maximum                                -- Start assigning refs to nodes from the max ref from Newick + 1
+              $ A.catMaybes                          -- Only keep Just values, nodes with assigned refs in the Newick description
+              $ getRef                               -- Extract references (:: Maybe Int)
+              <$> foldl (\a b -> a <> [ b ]) [] tree -- Preorder nodes from the tree in an array
+          )
+
+    postIncrementRef :: State Int Int
+    postIncrementRef = do
+      ref <- get
+      _ <- modify $ fromMaybe 0 <<< succ
+      pure ref
+
+    assignRef :: PNode -> State Int PNode
+    assignRef pnode@(PNode node) =
+      if isJust node.ref then
+        pure pnode
+      else do
+        ref <- postIncrementRef
+        pure $ PNode (node { ref = Just ref })
+
+    tagged :: NewickTree PNode
+    tagged = evalState (traverse assignRef tree) startRef
+
+    root :: NodeIdentifier
+    root = fromMaybe 0 $ getRef $ ancestor tagged
+
+    children :: NewickTree PNode -> M.Map Int (List Int)
+    children (Leaf (PNode { ref })) =
+      case ref of
+        Just r -> M.singleton r Nil
+        Nothing -> M.empty
+    children (Internal (PNode {ref}) cs) =
+      case ref of
+           Just r -> foldl
+                       (\acc t -> M.unionWith (union) acc $ children t)
+                       (M.singleton r (L.fromFoldable $ A.catMaybes $ getRef <<< ancestor <$> cs))
+                       cs
+           Nothing -> foldl (\acc t -> M.unionWith (union) acc $ children t) M.empty cs
+
+    children' = children tagged
+
+    foldFn :: PNode -> NewickGraph -> NewickGraph
+    foldFn node@(PNode {ref}) graph =
+      case ref of
+        Just r -> [(r /\ (node /\ (fromMaybe Nil $ M.lookup r children')))] <> graph
+        Nothing -> graph
+      
   in
-   []
+    { root: root, network: Network $ G.fromMap $ M.fromFoldable $ foldr (foldFn) [] tagged }
