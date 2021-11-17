@@ -55,6 +55,8 @@ newtype PNode
   , attributes :: M.Map String Attribute
   }
 
+derive instance newtypePNode :: Newtype PNode _
+
 newtype Network
   = Network (G.Graph NodeIdentifier PNode)
 
