@@ -117,3 +117,18 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
     it "Parses a tree rooted on a leaf node (rare)" do
       expectNames "((B:0.2,(C:0.3,D:0.4)E:0.5)F:0.1)A;"
         [ ("A" /\ 0.0), ("F" /\ 0.1), ("E" /\ 0.5), ("D" /\ 0.4), ("C" /\ 0.3), ("B" /\ 0.2) ]
+
+  describe "Parse Extended Newick networks" do
+    it "Parses an Extended Newick network" do
+      expectNames "(A,B,((C,(Y)x#1)c,(x#1,D)d)e)f;"
+        [ ("f" /\ 0.0)
+        , ("e" /\ 0.0)
+        , ("d" /\ 0.0)
+        , ("D" /\ 0.0)
+        , ("c" /\ 0.0)
+        , ("C" /\ 0.0)
+        , ("B" /\ 0.0)
+        , ("A" /\ 0.0)
+        , ("x" /\ 0.0)
+        , ("Y" /\ 0.0)
+        ]
