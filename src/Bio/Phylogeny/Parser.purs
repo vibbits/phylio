@@ -25,7 +25,14 @@ import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser (ParserT, fail, runParser)
-import Text.Parsing.Parser.Combinators (between, many1, optional, optionMaybe, sepBy, try)
+import Text.Parsing.Parser.Combinators
+  ( between
+  , many1
+  , optional
+  , optionMaybe
+  , sepBy
+  , try
+  )
 import Text.Parsing.Parser.String (char, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
 
@@ -75,17 +82,13 @@ instance showNodeType :: Show NodeType where
   show Recombination = "Recombination"
 
 instance showPNode :: Show PNode where
-  show (PNode { name, node, branchLength, ref, attributes }) = i "PNode{" name ", " (show node) ", " (show branchLength) ", " (show ref) ", " (show attributes) "}"
+  show (PNode { name, node, branchLength, ref, attributes }) =
+    i "PNode{" name ", " (show node) ", " (show branchLength) ", " (show ref) ", " (show attributes) "}"
 
 instance showGraph :: Show Network where
   show (Network g) = show $ A.fromFoldable $ G.topologicalSort g
 
--- This is the second-stage intermediate representation
-type NewickNode = Tuple NodeIdentifier (Tuple PNode (List NodeIdentifier))
-
-type NewickGraph = Array NewickNode
-
--- This is the first-stage intermediate representation
+-- This is the intermediate representation for Newick and Extended Newick
 data NewickTree a
   = Leaf a
   | Internal a (Array (NewickTree a))
@@ -230,7 +233,6 @@ interpretIntermediate tree =
 
     children' = children tagged
 
-    foldFn :: PNode -> NewickGraph -> NewickGraph
     foldFn node@(PNode { ref }) graph =
       case ref of
         Just r -> [ (r /\ (node /\ (fromMaybe Nil $ M.lookup r children'))) ] <> graph
