@@ -1,7 +1,31 @@
 module Bio.Phylogeny.Parser where
 
-import Prelude hiding (between)
+import Prelude
+  ( class Functor
+  , class Show
+  , bind
+  , const
+  , discard
+  , map
+  , pure
+  , show
+  , ($)
+  , (*>)
+  , (<*>)
+  , (<*)
+  , (+)
+  , (<$>)
+  , (<<<)
+  , (<>)
+  )
 
+import Bio.Phylogeny.Types
+  ( Network(..)
+  , NodeIdentifier
+  , NodeType(..)
+  , PNode(..)
+  , Phylogeny
+  )
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Control.Monad.State (State, evalState, get, modify)
@@ -18,7 +42,6 @@ import Data.List (List(Nil), union)
 import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
-import Data.Newtype (class Newtype)
 import Data.Number as N
 import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
@@ -35,58 +58,6 @@ import Text.Parsing.Parser.Combinators
   )
 import Text.Parsing.Parser.String (char, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
-
-data Attribute
-  = Numeric Number
-  | Text String
-
-data NodeType
-  = Clade
-  | Taxa
-  | Hybrid
-  | LateralGeneTransfer
-  | Recombination
-
-type NodeName = String
-
-type NodeIdentifier = Int
-
-newtype PNode = PNode
-  { name :: NodeName
-  , node :: NodeType
-  , branchLength :: Number
-  , ref :: Maybe Int
-  , attributes :: M.Map String Attribute
-  }
-
-derive instance newtypePNode :: Newtype PNode _
-
-newtype Network = Network (G.Graph NodeIdentifier PNode)
-
-derive instance newtypeNetwork :: Newtype Network _
-
-type Phylogeny =
-  { root :: NodeIdentifier
-  , network :: Network
-  }
-
-instance showAttribute :: Show Attribute where
-  show (Numeric n) = show n
-  show (Text s) = s
-
-instance showNodeType :: Show NodeType where
-  show Clade = "Clade"
-  show Taxa = "Taxa"
-  show Hybrid = "Hybrid"
-  show LateralGeneTransfer = "LateralGeneTransfer"
-  show Recombination = "Recombination"
-
-instance showPNode :: Show PNode where
-  show (PNode { name, node, branchLength, ref, attributes }) =
-    i "PNode{" name ", " (show node) ", " (show branchLength) ", " (show ref) ", " (show attributes) "}"
-
-instance showGraph :: Show Network where
-  show (Network g) = show $ A.fromFoldable $ G.topologicalSort g
 
 -- This is the intermediate representation for Newick and Extended Newick
 data NewickTree a
@@ -185,18 +156,11 @@ interpretIntermediate tree =
   let
     startRef :: Int
     startRef =
-      fromMaybe 0 -- default to 0 if there are no pre-assigned refs
-
-        $ (_ + 1) -- add 1 to this ref
-
-            <$>
-              ( maximum -- Start assigning refs to nodes from the max ref from Newick + 1
-
-                  $ A.catMaybes -- Only keep Just values, nodes with assigned refs in the Newick description
-                  $ getRef -- Extract references (:: Maybe Int)
-
-                      <$> foldl (\a b -> a <> [ b ]) [] tree -- Preorder nodes from the tree in an array
-              )
+      fromMaybe 0 $ (_ + 1) <$> maxRef
+      where
+      maxRef :: Maybe Int
+      maxRef = maximum $ A.catMaybes $ getRef
+        <$> foldl (\a b -> a <> [ b ]) [] tree
 
     postIncrementRef :: State Int Int
     postIncrementRef = do

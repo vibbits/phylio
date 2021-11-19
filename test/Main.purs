@@ -1,6 +1,7 @@
 module Test.Main where
 
 import Bio.Phylogeny.Parser
+import Bio.Phylogeny.Types
 import Prelude
 
 import Control.Monad.Error.Class (class MonadThrow)
@@ -8,14 +9,12 @@ import Data.Array as A
 import Data.Either (Either(..))
 import Data.Graph as G
 import Data.List as L
-import Data.Map as M
-import Data.Maybe (Maybe(..))
 import Data.Newtype (un)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Effect.Exception (Error, throw)
+import Effect.Exception (Error)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
