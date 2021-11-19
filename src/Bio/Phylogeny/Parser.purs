@@ -40,14 +40,11 @@ data NodeType
   | LateralGeneTransfer
   | Recombination
 
-type NodeName
-  = String
+type NodeName = String
 
-type NodeIdentifier
-  = Int
+type NodeIdentifier = Int
 
-newtype PNode
-  = PNode
+newtype PNode = PNode
   { name :: NodeName
   , node :: NodeType
   , branchLength :: Number
@@ -57,15 +54,14 @@ newtype PNode
 
 derive instance newtypePNode :: Newtype PNode _
 
-newtype Network
-  = Network (G.Graph NodeIdentifier PNode)
+newtype Network = Network (G.Graph NodeIdentifier PNode)
 
 derive instance newtypeNetwork :: Newtype Network _
 
-type Phylogeny
-  = { root :: NodeIdentifier
-    , network :: Network
-    }
+type Phylogeny =
+  { root :: NodeIdentifier
+  , network :: Network
+  }
 
 instance showAttribute :: Show Attribute where
   show (Numeric n) = show n
@@ -85,11 +81,9 @@ instance showGraph :: Show Network where
   show (Network g) = show $ A.fromFoldable $ G.topologicalSort g
 
 -- This is the second-stage intermediate representation
-type NewickNode
-  = Tuple NodeIdentifier (Tuple PNode (List NodeIdentifier))
+type NewickNode = Tuple NodeIdentifier (Tuple PNode (List NodeIdentifier))
 
-type NewickGraph
-  = Array NewickNode
+type NewickGraph = Array NewickNode
 
 -- This is the first-stage intermediate representation
 data NewickTree a
@@ -117,8 +111,7 @@ instance showNewickTree :: Show a => Show (NewickTree a) where
   show (Leaf n) = "Leaf(" <> show n <> ")"
   show (Internal p cs) = "Internal(" <> show p <> ", " <> show cs <> ")"
 
-type Parser a
-  = ParserT String Identity a
+type Parser a = ParserT String Identity a
 
 -- | Parse phylogenies serialised to the legacy Newick format
 parseNewick :: String -> Either String Phylogeny
@@ -183,19 +176,24 @@ ancestor (Internal p _) = p
 
 getRef :: PNode -> Maybe Int
 getRef (PNode { ref }) = ref
-  
+
 interpretIntermediate :: NewickTree PNode -> Phylogeny
 interpretIntermediate tree =
   let
     startRef :: Int
     startRef =
-      fromMaybe 0                                    -- default to 0 if there are no pre-assigned refs
-        $ (_ + 1)                                    -- add 1 to this ref
-        <$> ( maximum                                -- Start assigning refs to nodes from the max ref from Newick + 1
-              $ A.catMaybes                          -- Only keep Just values, nodes with assigned refs in the Newick description
-              $ getRef                               -- Extract references (:: Maybe Int)
-              <$> foldl (\a b -> a <> [ b ]) [] tree -- Preorder nodes from the tree in an array
-          )
+      fromMaybe 0 -- default to 0 if there are no pre-assigned refs
+
+        $ (_ + 1) -- add 1 to this ref
+
+            <$>
+              ( maximum -- Start assigning refs to nodes from the max ref from Newick + 1
+
+                  $ A.catMaybes -- Only keep Just values, nodes with assigned refs in the Newick description
+                  $ getRef -- Extract references (:: Maybe Int)
+
+                      <$> foldl (\a b -> a <> [ b ]) [] tree -- Preorder nodes from the tree in an array
+              )
 
     postIncrementRef :: State Int Int
     postIncrementRef = do
@@ -222,21 +220,21 @@ interpretIntermediate tree =
       case ref of
         Just r -> M.singleton r Nil
         Nothing -> M.empty
-    children (Internal (PNode {ref}) cs) =
+    children (Internal (PNode { ref }) cs) =
       case ref of
-           Just r -> foldl
-                       (\acc t -> M.unionWith (union) acc $ children t)
-                       (M.singleton r (L.fromFoldable $ A.catMaybes $ getRef <<< ancestor <$> cs))
-                       cs
-           Nothing -> foldl (\acc t -> M.unionWith (union) acc $ children t) M.empty cs
+        Just r -> foldl
+          (\acc t -> M.unionWith (union) acc $ children t)
+          (M.singleton r (L.fromFoldable $ A.catMaybes $ getRef <<< ancestor <$> cs))
+          cs
+        Nothing -> foldl (\acc t -> M.unionWith (union) acc $ children t) M.empty cs
 
     children' = children tagged
 
     foldFn :: PNode -> NewickGraph -> NewickGraph
-    foldFn node@(PNode {ref}) graph =
+    foldFn node@(PNode { ref }) graph =
       case ref of
-        Just r -> [(r /\ (node /\ (fromMaybe Nil $ M.lookup r children')))] <> graph
+        Just r -> [ (r /\ (node /\ (fromMaybe Nil $ M.lookup r children'))) ] <> graph
         Nothing -> graph
-      
+
   in
     { root: root, network: Network $ G.fromMap $ M.fromFoldable $ foldr (foldFn) [] tagged }
