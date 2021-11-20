@@ -1,31 +1,6 @@
 module Bio.Phylogeny.Parser where
 
-import Prelude
-  ( class Functor
-  , class Show
-  , bind
-  , const
-  , discard
-  , map
-  , pure
-  , show
-  , ($)
-  , (*>)
-  , (<*>)
-  , (<*)
-  , (+)
-  , (<$>)
-  , (<<<)
-  , (<>)
-  )
-
-import Bio.Phylogeny.Types
-  ( Network(..)
-  , NodeIdentifier
-  , NodeType(..)
-  , PNode(..)
-  , Phylogeny
-  )
+import Bio.Phylogeny.Types (Attribute, Network(..), NodeIdentifier, NodeType(..), PNode(..), Phylogeny)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Control.Monad.State (State, evalState, get, modify)
@@ -47,16 +22,10 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
+import Prelude (class Functor, class Show, bind, const, discard, map, pure, show, ($), (*>), (<*>), (<*), (+), (<$>), (<<<), (<>))
 import Text.Parsing.Parser (ParserT, fail, runParser)
-import Text.Parsing.Parser.Combinators
-  ( between
-  , many1
-  , optional
-  , optionMaybe
-  , sepBy
-  , try
-  )
-import Text.Parsing.Parser.String (char, skipSpaces, string)
+import Text.Parsing.Parser.Combinators (between, many1, optional, optionMaybe, sepBy, try)
+import Text.Parsing.Parser.String (char, oneOf, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
 
 -- This is the intermediate representation for Newick and Extended Newick
@@ -112,16 +81,33 @@ refp = do
     Just r -> pure (r /\ t)
     Nothing -> fail $ i "References must be an integer: " n
 
-namep :: NodeType -> Parser PNode
-namep nt = do
-  skipSpaces
-  name' <- fromCharArray <$> A.many letter
-  ref <- optionMaybe refp
-  len <- length <|> pure 0.0
-  skipSpaces
-  case ref of
-    Just (id /\ nodet) -> pure $ PNode { name: name', node: nodet, branchLength: len, attributes: M.empty, ref: Just id }
-    Nothing -> pure $ PNode { name: name', node: nt, branchLength: len, attributes: M.empty, ref: Nothing }
+node :: NodeType -> Parser PNode
+node nt =
+  let
+    extras = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '_' ]
+  in
+    do
+      skipSpaces
+      name' <- fromCharArray <$> A.many (letter <|> oneOf extras)
+      ref <- optionMaybe refp
+      len <- length <|> pure 0.0
+      attrs <- attributes <|> pure M.empty
+      skipSpaces
+      case ref of
+        Just (id /\ nodet) -> pure $ PNode
+          { name: name'
+          , node: nodet
+          , branchLength: len
+          , attributes: attrs
+          , ref: Just id
+          }
+        Nothing -> pure $ PNode
+          { name: name'
+          , node: nt
+          , branchLength: len
+          , attributes: attrs
+          , ref: Nothing
+          }
 
 number :: Parser Number
 number = do
@@ -135,13 +121,22 @@ number = do
 length :: Parser Number
 length = char ':' *> number
 
+attributes :: Parser (M.Map String Attribute)
+attributes =
+  let
+    keys = string ":GN=" <|> string ":AC=" <|> string ":S="
+  in
+    do
+      _ <- between (string "[&&NHX") (string "]") (keys)
+      pure M.empty
+
 leaf :: Parser (NewickTree PNode)
-leaf = Leaf <$> namep Taxa
+leaf = Leaf <$> node Taxa
 
 internal :: Parser (NewickTree PNode) -> Parser (NewickTree PNode)
 internal pars = do
   lst <- between (string "(") (string ")") (pars `sepBy` char ',')
-  parent <- try $ namep Clade
+  parent <- try $ node Clade
   pure $ Internal parent $ A.fromFoldable lst
 
 ancestor :: NewickTree PNode -> PNode
@@ -203,4 +198,6 @@ interpretIntermediate tree =
         Nothing -> graph
 
   in
-    { root: root, network: Network $ G.fromMap $ M.fromFoldable $ foldr (foldFn) [] tagged }
+    { root: root
+    , network: Network $ G.fromMap $ M.fromFoldable $ foldr (foldFn) [] tagged
+    }
