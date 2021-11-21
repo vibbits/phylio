@@ -1,6 +1,6 @@
 module Bio.Phylogeny.Parser where
 
-import Bio.Phylogeny.Types (Attribute, Network(..), NodeIdentifier, NodeType(..), PNode(..), Phylogeny)
+import Bio.Phylogeny.Types (Attribute(..), Network(..), NodeIdentifier, NodeType(..), PNode(..), Phylogeny)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Control.Monad.State (State, evalState, get, modify)
@@ -22,7 +22,7 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Prelude (class Functor, class Show, bind, const, discard, map, pure, show, ($), (*>), (<*>), (<*), (+), (<$>), (<<<), (<>))
+import Prelude (class Functor, class Show, bind, const, discard, map, pure, show, ($), (*>), (+), (<$>), (<*), (<*>), (<<<), (<>))
 import Text.Parsing.Parser (ParserT, fail, runParser)
 import Text.Parsing.Parser.Combinators (between, many1, optional, optionMaybe, sepBy, try)
 import Text.Parsing.Parser.String (char, oneOf, skipSpaces, string)
@@ -84,13 +84,14 @@ refp = do
 node :: NodeType -> Parser PNode
 node nt =
   let
-    extras = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '_' ]
+    extras = [ '.', '_' ]
   in
     do
       skipSpaces
-      name' <- fromCharArray <$> A.many (letter <|> oneOf extras)
+      name' <- fromCharArray <$> A.many (letter <|> digit <|> oneOf extras)
       ref <- optionMaybe refp
       len <- length <|> pure 0.0
+      skipSpaces
       attrs <- attributes <|> pure M.empty
       skipSpaces
       case ref of
@@ -122,20 +123,41 @@ length :: Parser Number
 length = char ':' *> number
 
 attributes :: Parser (M.Map String Attribute)
-attributes =
-  let
-    keys = string ":GN=" <|> string ":AC=" <|> string ":S="
-  in
-    do
-      _ <- between (string "[&&NHX") (string "]") (keys)
-      pure M.empty
+attributes = do
+  kvs <- between (string "[&&NHX:") (string "]") (attr `sepBy` char ':')
+  pure $ M.fromFoldable kvs
+
+attr :: Parser (Tuple String Attribute)
+attr = do
+  key <- (string "GN" *> pure "gene")
+    <|> (string "AC" *> pure "seq")
+    <|> (string "ND" *> pure "id")
+    <|> (string "B" *> pure "confidence")
+    <|> (string "D" *> pure "event")
+    <|> (string "Ev" *> pure "event")
+    <|> (string "E" *> pure "EC")
+    <|> (string "Fu" *> pure "function")
+    <|> (string "DS" *> pure "domain structure")
+    <|> (string "S" *> pure "species")
+    <|> (string "T" *> pure "taxonomy")
+    <|> (string "W" *> pure "width")
+    <|> (string "C" *> pure "color")
+    <|> (string "Co" *> pure "collapse")
+    <|> (string "XB" *> pure "branch data")
+    <|> (string "XN" *> pure "node data")
+    <|> (string "O" *> pure "orthologous")
+    <|> (string "SN" *> pure "subtree neighbors")
+    <|> (string "SO" *> pure "super orthologous")
+  _ <- char '='
+  value <- many1 (letter <|> digit <|> oneOf [ '.' ])
+  pure (key /\ (Text $ fromCharArray $ A.fromFoldable value))
 
 leaf :: Parser (NewickTree PNode)
 leaf = Leaf <$> node Taxa
 
 internal :: Parser (NewickTree PNode) -> Parser (NewickTree PNode)
 internal pars = do
-  lst <- between (string "(") (string ")") (pars `sepBy` char ',')
+  lst <- between (string "(") (string ")") ((skipSpaces *> pars <* skipSpaces) `sepBy` char ',')
   parent <- try $ node Clade
   pure $ Internal parent $ A.fromFoldable lst
 
@@ -164,12 +186,12 @@ interpretIntermediate tree =
       pure ref
 
     assignRef :: PNode -> State Int PNode
-    assignRef pnode@(PNode node) =
-      if isJust node.ref then
+    assignRef pnode@(PNode n) =
+      if isJust n.ref then
         pure pnode
       else do
         ref <- postIncrementRef
-        pure $ PNode (node { ref = Just ref })
+        pure $ PNode (n { ref = Just ref })
 
     tagged :: NewickTree PNode
     tagged = evalState (traverse assignRef tree) startRef
@@ -192,9 +214,9 @@ interpretIntermediate tree =
 
     children' = children tagged
 
-    foldFn node@(PNode { ref }) graph =
+    foldFn n@(PNode { ref }) graph =
       case ref of
-        Just r -> [ (r /\ (node /\ (fromMaybe Nil $ M.lookup r children'))) ] <> graph
+        Just r -> [ (r /\ (n /\ (fromMaybe Nil $ M.lookup r children'))) ] <> graph
         Nothing -> graph
 
   in
