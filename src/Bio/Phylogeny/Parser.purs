@@ -28,7 +28,7 @@ import Text.Parsing.Parser.Combinators (between, many1, optional, optionMaybe, s
 import Text.Parsing.Parser.String (char, oneOf, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
 
--- This is the intermediate representation for Newick and Extended Newick
+-- This is the intermediate representation for Newick
 data NewickTree a
   = Leaf a
   | Internal a (Array (NewickTree a))
@@ -129,28 +129,12 @@ attributes = do
 
 attr :: Parser (Tuple String Attribute)
 attr = do
-  key <- (string "GN" *> pure "gene")
-    <|> (string "AC" *> pure "seq")
-    <|> (string "ND" *> pure "id")
-    <|> (string "B" *> pure "confidence")
-    <|> (string "D" *> pure "event")
-    <|> (string "Ev" *> pure "event")
-    <|> (string "E" *> pure "EC")
-    <|> (string "Fu" *> pure "function")
-    <|> (string "DS" *> pure "domain structure")
-    <|> (string "S" *> pure "species")
-    <|> (string "T" *> pure "taxonomy")
-    <|> (string "W" *> pure "width")
-    <|> (string "C" *> pure "color")
-    <|> (string "Co" *> pure "collapse")
-    <|> (string "XB" *> pure "branch data")
-    <|> (string "XN" *> pure "node data")
-    <|> (string "O" *> pure "orthologous")
-    <|> (string "SN" *> pure "subtree neighbors")
-    <|> (string "SO" *> pure "super orthologous")
+  key <- fromCharArray <<< A.fromFoldable <$> many1 letter
   _ <- char '='
-  value <- many1 (letter <|> digit <|> oneOf [ '.' ])
-  pure (key /\ (Text $ fromCharArray $ A.fromFoldable value))
+  val <- fromCharArray <<< A.fromFoldable <$> many1 (letter <|> digit <|> oneOf [ '.' ])
+  case N.fromString val of
+    Just value -> pure (key /\ Numeric value)
+    Nothing -> pure (key /\ Text val)
 
 leaf :: Parser (NewickTree PNode)
 leaf = Leaf <$> node Taxa
