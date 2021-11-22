@@ -1,69 +1,33 @@
 module Bio.Phylogeny.Newick where
 
-import Bio.Phylogeny.Types (Attribute(..), Network(..), NodeType(..), PNode(..), Phylogeny)
+import Bio.Phylogeny.Types (Attribute(..), NodeType(..), PNode(..), Parser, Phylogeny, Tree(..), interpretIntermediate)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
-import Control.Monad.State (State, evalState, get, modify)
 import Data.Array as A
 import Data.Bifunctor (lmap)
 import Data.Either (Either)
-import Data.Enum (succ)
-import Data.Foldable (class Foldable, foldMap, foldl, foldr, foldrDefault, maximum)
-import Data.Graph as G
-import Data.Identity (Identity)
 import Data.Int as I
 import Data.Interpolate (i)
-import Data.List (List(Nil), union)
-import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe, isJust)
+import Data.Maybe (Maybe(..))
 import Data.Number as N
 import Data.String.CodeUnits (fromCharArray)
-import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Prelude (class Functor, class Show, bind, const, discard, map, pure, show, ($), (*>), (+), (<$>), (<*), (<*>), (<<<), (<>))
-import Text.Parsing.Parser (ParserT, fail, runParser)
+import Prelude (bind, const, discard, pure, show, ($), (*>), (<$>), (<*), (<<<), (<>))
+import Text.Parsing.Parser (fail, runParser)
 import Text.Parsing.Parser.Combinators (between, many1, optional, optionMaybe, sepBy, try)
 import Text.Parsing.Parser.String (char, oneOf, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
 
--- This is the intermediate representation for Newick
-data NewickTree a
-  = Leaf a
-  | Internal a (Array (NewickTree a))
-
-instance functorNewickTree :: Functor NewickTree where
-  map f (Leaf n) = Leaf (f n)
-  map f (Internal p cs) = Internal (f p) (map (map f) cs)
-
--- | Pre-order tree traversal
-instance foldableNewickTree :: Foldable NewickTree where
-  foldl f acc (Leaf n) = f acc n
-  foldl f acc (Internal p cs) = foldl (foldl f) (f acc p) cs
-  foldMap f (Leaf n) = f n
-  foldMap f (Internal p cs) = f p <> foldMap (foldMap f) cs
-  foldr f = foldrDefault f
-
-instance traverseNewickTree :: Traversable NewickTree where
-  traverse action (Leaf n) = Leaf <$> action n
-  traverse action (Internal p cs) = Internal <$> action p <*> traverse (traverse action) cs
-  sequence = sequenceDefault
-
-instance showNewickTree :: Show a => Show (NewickTree a) where
-  show (Leaf n) = "Leaf(" <> show n <> ")"
-  show (Internal p cs) = "Internal(" <> show p <> ", " <> show cs <> ")"
-
-type Parser a = ParserT String Identity a
-
--- | Parse phylogenies serialised to the legacy Newick format
+-- | Parse phylogenies serialised to the Newick format
 parseNewick :: String -> Either String Phylogeny
 parseNewick input = lmap show $ runParser input newickParser
 
 newickParser :: Parser Phylogeny
 newickParser = interpretIntermediate <$> subTree <* char ';'
 
-subTree :: Parser (NewickTree PNode)
+subTree :: Parser (Tree PNode)
 subTree = fix $ \p -> internal p <|> leaf
 
 refp :: Parser (Tuple Int NodeType)
@@ -134,71 +98,12 @@ attr = do
     Just value -> pure (key /\ Numeric value)
     Nothing -> pure (key /\ Text val)
 
-leaf :: Parser (NewickTree PNode)
+leaf :: Parser (Tree PNode)
 leaf = Leaf <$> node Taxa
 
-internal :: Parser (NewickTree PNode) -> Parser (NewickTree PNode)
+internal :: Parser (Tree PNode) -> Parser (Tree PNode)
 internal pars = do
   lst <- between (string "(") (string ")") ((skipSpaces *> pars <* skipSpaces) `sepBy` char ',')
   parent <- try $ node Clade
   pure $ Internal parent $ A.fromFoldable lst
 
-ancestor :: NewickTree PNode -> PNode
-ancestor (Leaf l) = l
-ancestor (Internal p _) = p
-
-getRef :: PNode -> Maybe Int
-getRef (PNode { ref }) = ref
-
-interpretIntermediate :: NewickTree PNode -> Phylogeny
-interpretIntermediate tree =
-  let
-    startRef :: Int
-    startRef =
-      fromMaybe 0 $ (_ + 1) <$> maxRef
-      where
-      maxRef :: Maybe Int
-      maxRef = maximum $ A.catMaybes $ getRef
-        <$> foldl (\a b -> a <> [ b ]) [] tree
-
-    postIncrementRef :: State Int Int
-    postIncrementRef = do
-      ref <- get
-      _ <- modify $ fromMaybe 0 <<< succ
-      pure ref
-
-    assignRef :: PNode -> State Int PNode
-    assignRef pnode@(PNode n) =
-      if isJust n.ref then
-        pure pnode
-      else do
-        ref <- postIncrementRef
-        pure $ PNode (n { ref = Just ref })
-
-    tagged :: NewickTree PNode
-    tagged = evalState (traverse assignRef tree) startRef
-
-    children :: NewickTree PNode -> M.Map Int (List Int)
-    children (Leaf (PNode { ref })) =
-      case ref of
-        Just r -> M.singleton r Nil
-        Nothing -> M.empty
-    children (Internal (PNode { ref }) cs) =
-      case ref of
-        Just r -> foldl
-          (\acc t -> M.unionWith (union) acc $ children t)
-          (M.singleton r (L.fromFoldable $ A.catMaybes $ getRef <<< ancestor <$> cs))
-          cs
-        Nothing -> foldl (\acc t -> M.unionWith (union) acc $ children t) M.empty cs
-
-    children' = children tagged
-
-    foldFn n@(PNode { ref }) graph =
-      case ref of
-        Just r -> [ (r /\ (n /\ (fromMaybe Nil $ M.lookup r children'))) ] <> graph
-        Nothing -> graph
-
-  in
-    { root: fromMaybe 0 $ getRef $ ancestor tagged
-    , network: Network $ G.fromMap $ M.fromFoldable $ foldr (foldFn) [] tagged
-    }

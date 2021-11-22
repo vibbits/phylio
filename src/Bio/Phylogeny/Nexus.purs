@@ -10,14 +10,12 @@ import Data.Bifunctor (lmap)
 import Data.Either (Either)
 import Data.Filterable (filterMap)
 import Data.Identity (Identity)
-import Data.List.NonEmpty (toList)
-import Data.List.Types ((:), NonEmptyList(..))
 import Data.Maybe (Maybe(..))
+import Data.String (toUpper)
 import Data.String.CodeUnits (fromCharArray)
-import Debug (trace)
 import Text.Parsing.Parser (ParserT, fail, runParser)
 import Text.Parsing.Parser.Combinators (between, lookAhead, many1, manyTill)
-import Text.Parsing.Parser.String (anyChar, char, eof, oneOf, skipSpaces, string)
+import Text.Parsing.Parser.String (anyChar, char, eof, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, letter)
 
 type Parser a = ParserT String Identity a
@@ -46,7 +44,7 @@ blockInner = do
   name <- fromCharArray <<< fromFoldable <$> (many1 letter <* char ';')
   skipSpaces
   phy <-
-    if name == "TREES" then
+    if toUpper name == "TREES" then
       Just <$> tree
     else
       const Nothing <$> skipInner
