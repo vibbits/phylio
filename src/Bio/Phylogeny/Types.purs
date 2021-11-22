@@ -3,15 +3,20 @@ module Bio.Phylogeny.Types where
 import Prelude
 
 import Data.Array (fromFoldable)
-import Data.Graph (Graph, topologicalSort)
+import Data.Graph (Graph, outEdges, topologicalSort, vertices)
 import Data.Interpolate (i)
+import Data.List (List(Nil))
 import Data.Map (Map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe, fromMaybe)
 import Data.Newtype (class Newtype)
+import Data.Tuple (Tuple)
+import Data.Tuple.Nested ((/\))
 
 data Attribute
   = Numeric Number
   | Text String
+
+derive instance eqAttribute :: Eq Attribute
 
 data NodeType
   = Clade
@@ -19,6 +24,8 @@ data NodeType
   | Hybrid
   | LateralGeneTransfer
   | Recombination
+
+derive instance eqNodeType :: Eq NodeType
 
 type NodeName = String
 
@@ -34,9 +41,17 @@ newtype PNode = PNode
 
 derive instance newtypePNode :: Newtype PNode _
 
+derive instance eqPNode :: Eq PNode
+
 newtype Network = Network (Graph NodeIdentifier PNode)
 
 derive instance newtypeNetwork :: Newtype Network _
+
+instance eqNetwork :: Eq Network where
+  eq (Network a) (Network b) = (vertices a == vertices b) && (edges a == edges b)
+    where
+    edges :: Graph NodeIdentifier PNode -> List (Tuple NodeIdentifier NodeIdentifier)
+    edges graph = (topologicalSort graph) >>= (\id -> (id /\ _) <$> fromMaybe Nil (outEdges id graph))
 
 type Phylogeny =
   { root :: NodeIdentifier

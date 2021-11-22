@@ -1,0 +1,143 @@
+module Test.Bio.Phylogeny.Newick where
+
+import Prelude
+import Test.Bio.Phylogeny.Expect
+
+import Bio.Phylogeny.Newick (parseNewick)
+import Bio.Phylogeny.Types (Network(..), NodeIdentifier, PNode(..), Phylogeny)
+import Control.Monad.Error.Class (class MonadThrow)
+import Data.Array as A
+import Data.Either (Either(..))
+import Data.Graph as G
+import Data.List as L
+import Data.Newtype (un)
+import Data.Tuple (Tuple)
+import Data.Tuple.Nested ((/\))
+import Effect.Exception (Error)
+import Test.Spec (Spec, describe, it, parallel)
+
+specs :: Spec Unit
+specs = parallel do
+  describe "Parse Newick"
+    do
+      it "Parses an empty sexpr" do
+        parseNewick "();" `expectNNodes` 2
+
+      it "Parses a single node" do
+        parseNewick "A;" `expectNames` [ ("A" /\ 0.0) ]
+
+      it "Parses a singleton sexpr" do
+        parseNewick "(A);"
+          `expectNames`
+            [ ("" /\ 0.0), ("A" /\ 0.0) ]
+
+      it "Parses a string name" do
+        parseNewick "(Hello,World);"
+          `expectNames`
+            [ ("" /\ 0.0), ("World" /\ 0.0), ("Hello" /\ 0.0) ]
+
+      it "Parses a sexpr with spaces" do
+        parseNewick "( A, B ,  C );"
+          `expectNames`
+            [ ("" /\ 0.0), ("C" /\ 0.0), ("B" /\ 0.0), ("A" /\ 0.0) ]
+
+      it "Parses a single node with a branch length" do
+        parseNewick "A:1.1;" `expectNames` [ ("A" /\ 1.1) ]
+
+      it "Parses a list with 3 unnamed nodes" do
+        parseNewick "(,,);"
+          `expectNames`
+            [ ("" /\ 0.0), ("" /\ 0.0), ("" /\ 0.0), ("" /\ 0.0) ]
+
+      it "Parses a nested list with unnamed nodes" do
+        parseNewick "(,,(,));" `expectNNodes` 6
+
+      it "Parses a nested list with named nodes" do
+        parseNewick "(A,B,(C,D));"
+          `expectNames`
+            [ ("" /\ 0.0), ("" /\ 0.0), ("D" /\ 0.0), ("C" /\ 0.0), ("B" /\ 0.0), ("A" /\ 0.0) ]
+
+      it "Parses a rooted and nested tree with all named nodes" do
+        parseNewick "(A,(B)C)D;"
+          `expectNames`
+            [ ("D" /\ 0.0), ("C" /\ 0.0), ("B" /\ 0.0), ("A" /\ 0.0) ]
+
+      it "Parses a rooted and nested tree with all named nodes and branch lengths" do
+        parseNewick "(A:1.0,(B:1.5)C:0.9)D:5.6;"
+          `expectNames`
+            [ ("D" /\ 5.6), ("C" /\ 0.9), ("B" /\ 1.5), ("A" /\ 1.0) ]
+
+      it "Parses a rooted and nested tree with no named nodes but all branch lengths" do
+        parseNewick "(:1.0,(:1.5):0.9):5.6;"
+          `expectNames`
+            [ ("" /\ 5.6), ("" /\ 0.9), ("" /\ 1.5), ("" /\ 1.0) ]
+
+  describe "Parse Newick wikipedia examples"
+    do
+      it "Parses no nodes are named" do
+        parseNewick "(,,(,));" `expectNNodes` 6
+
+      it "Parses leaf nodes are named" do
+        parseNewick "(A,B,(C,D));"
+          `expectNames`
+            [ ("" /\ 0.0), ("" /\ 0.0), ("D" /\ 0.0), ("C" /\ 0.0), ("B" /\ 0.0), ("A" /\ 0.0) ]
+
+      it "Parses all nodes are named" do
+        parseNewick "(A,B,(C,D)E)F;"
+          `expectNames`
+            [ ("F" /\ 0.0), ("E" /\ 0.0), ("D" /\ 0.0), ("C" /\ 0.0), ("B" /\ 0.0), ("A" /\ 0.0) ]
+
+      it "Parses all but root node have a distance to parent" do
+        parseNewick "(:0.1,:0.2,(:0.3,:0.4):0.5);"
+          `expectNames`
+            [ ("" /\ 0.0), ("" /\ 0.5), ("" /\ 0.4), ("" /\ 0.3), ("" /\ 0.2), ("" /\ 0.1) ]
+
+      it "Parses all have a distance to parent" do
+        parseNewick "(:0.1,:0.2,(:0.3,:0.4):0.5):0.0;"
+          `expectNames`
+            [ ("" /\ 0.0), ("" /\ 0.5), ("" /\ 0.4), ("" /\ 0.3), ("" /\ 0.2), ("" /\ 0.1) ]
+
+      it "Parses distances and leaf names (popular)" do
+        parseNewick "(A:0.1,B:0.2,(C:0.3,D:0.4):0.5);"
+          `expectNames`
+            [ ("" /\ 0.0), ("" /\ 0.5), ("D" /\ 0.4), ("C" /\ 0.3), ("B" /\ 0.2), ("A" /\ 0.1) ]
+
+      it "Parses distances and all names" do
+        parseNewick "(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;"
+          `expectNames`
+            [ ("F" /\ 0.0), ("E" /\ 0.5), ("D" /\ 0.4), ("C" /\ 0.3), ("B" /\ 0.2), ("A" /\ 0.1) ]
+
+      it "Parses a tree rooted on a leaf node (rare)" do
+        parseNewick "((B:0.2,(C:0.3,D:0.4)E:0.5)F:0.1)A;"
+          `expectNames`
+            [ ("A" /\ 0.0), ("F" /\ 0.1), ("E" /\ 0.5), ("D" /\ 0.4), ("C" /\ 0.3), ("B" /\ 0.2) ]
+
+  describe "Parse Extended Newick networks"
+    do
+      it "Parses an Extended Newick network" do
+        parseNewick "(A,B,((C,(Y)x#1)c,(x#1,D)d)e)f;"
+          `expectNames`
+            [ ("f" /\ 0.0)
+            , ("e" /\ 0.0)
+            , ("d" /\ 0.0)
+            , ("D" /\ 0.0)
+            , ("c" /\ 0.0)
+            , ("C" /\ 0.0)
+            , ("B" /\ 0.0)
+            , ("A" /\ 0.0)
+            , ("x" /\ 0.0)
+            , ("Y" /\ 0.0)
+            ]
+
+  describe "Parse NHX"
+    do
+      it "Parses empty NHX attributes" do
+        parseNewick "A[&&NHX:];" `expectNNodes` 1
+
+      it "Parses a single NHX node" do
+        parseNewick "ADH2:0.1[&&NHX:S=human:E=1.1.1.1];" `expectNNodes` 1
+
+      it "Parses an NHX sample" do
+        parseNewick "(((ADH2:0.1[&&NHX:S=human:E=1.1.1.1], ADH1:0.11[&&NHX:S=human:E=1.1.1.1]):0.05[&&NHX:S=Primates:E=1.1.1.1:D=Y:B=100], ADHY:0.1[&&NHX:S=nematode:E=1.1.1.1],ADHX:0.12[&&NHX:S=insect:E=1.1.1.1]):0.1[&&NHX:S=Metazoa:E=1.1.1.1:D=N], (ADH4:0.09[&&NHX:S=yeast:E=1.1.1.1],ADH3:0.13[&&NHX:S=yeast:E=1.1.1.1], ADH2:0.12[&&NHX:S=yeast:E=1.1.1.1],ADH1:0.11[&&NHX:S=yeast:E=1.1.1.1]):0.1 [&&NHX:S=Fungi])[&&NHX:E=1.1.1.1:D=N];"
+          `expectNNodes`
+            12

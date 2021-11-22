@@ -1,6 +1,6 @@
-module Bio.Phylogeny.Parser where
+module Bio.Phylogeny.Newick where
 
-import Bio.Phylogeny.Types (Attribute(..), Network(..), NodeIdentifier, NodeType(..), PNode(..), Phylogeny)
+import Bio.Phylogeny.Types (Attribute(..), Network(..), NodeType(..), PNode(..), Phylogeny)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Control.Monad.State (State, evalState, get, modify)
@@ -61,9 +61,7 @@ parseNewick :: String -> Either String Phylogeny
 parseNewick input = lmap show $ runParser input newickParser
 
 newickParser :: Parser Phylogeny
-newickParser = do
-  tree <- subTree <* char ';'
-  pure $ interpretIntermediate tree
+newickParser = interpretIntermediate <$> subTree <* char ';'
 
 subTree :: Parser (NewickTree PNode)
 subTree = fix $ \p -> internal p <|> leaf
@@ -180,9 +178,6 @@ interpretIntermediate tree =
     tagged :: NewickTree PNode
     tagged = evalState (traverse assignRef tree) startRef
 
-    root :: NodeIdentifier
-    root = fromMaybe 0 $ getRef $ ancestor tagged
-
     children :: NewickTree PNode -> M.Map Int (List Int)
     children (Leaf (PNode { ref })) =
       case ref of
@@ -204,6 +199,6 @@ interpretIntermediate tree =
         Nothing -> graph
 
   in
-    { root: root
+    { root: fromMaybe 0 $ getRef $ ancestor tagged
     , network: Network $ G.fromMap $ M.fromFoldable $ foldr (foldFn) [] tagged
     }
