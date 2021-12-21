@@ -88,6 +88,8 @@ data Tree a
   = Leaf a
   | Internal a (Array (Tree a))
 
+derive instance eqTree :: Eq a => Eq (Tree a)
+
 instance functorTree :: Functor Tree where
   map f (Leaf n) = Leaf (f n)
   map f (Internal p cs) = Internal (f p) (map (map f) cs)
