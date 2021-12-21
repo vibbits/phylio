@@ -2,8 +2,15 @@ module Bio.Phylogeny.PhyloXml where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Newick (attr)
-import Bio.Phylogeny.Types (Attribute(..), NodeType(..), PNode(..), Parser, Phylogeny, Tree(..), interpretIntermediate)
+import Bio.Phylogeny.Types
+  ( Attribute(..)
+  , NodeType(..)
+  , PNode(..)
+  , Parser
+  , Phylogeny
+  , Tree(..)
+  , interpretIntermediate
+  )
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as A
@@ -17,9 +24,15 @@ import Data.String as S
 import Data.String.CodeUnits (fromCharArray)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Debug (trace)
-import Text.Parsing.Parser (runParser, position)
-import Text.Parsing.Parser.Combinators (between, choice, lookAhead, many1, optional, sepBy, try)
+import Text.Parsing.Parser (runParser)
+import Text.Parsing.Parser.Combinators
+  ( between
+  , choice
+  , many1
+  , optional
+  , sepBy
+  , try
+  )
 import Text.Parsing.Parser.String (char, oneOf, skipSpaces, string)
 import Text.Parsing.Parser.Token (alphaNum, space)
 
@@ -229,16 +242,11 @@ sTag inner = do
   skipSpaces
   (tag /\ attrs) <- open
   skipSpaces
-  posOpen <- position
-  let _ = trace ("pos open tag: " <> show posOpen) identity
   subTree <- A.many inner
   val <- try value
-  let _ = trace ("subTree: " <> (show subTree) <> "  (" <> show val <> ")") identity
   skipSpaces
   _ <- close tag
   skipSpaces
-  posClose <- position
-  let _ = trace ("pos close tag: " <> show posClose) identity
   let node = \theVal -> XmlNode { name: tag, attributes: attrs, value: theVal }
   if A.null subTree then
     pure $ Leaf $ node $ if S.null val then Nothing else Just val
