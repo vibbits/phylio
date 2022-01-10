@@ -3,6 +3,7 @@ module Bio.Phylogeny.Types where
 import Prelude
 
 import Control.Monad.State (State, evalState, get, modify)
+import Data.Array ((:))
 import Data.Array as A
 import Data.Enum (succ)
 import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault, maximum)
@@ -13,7 +14,10 @@ import Data.List (List(Nil))
 import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
+import Data.Monoid (class Monoid)
 import Data.Newtype (class Newtype)
+import Data.Number as N
+import Data.Semigroup (class Semigroup)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
@@ -69,6 +73,12 @@ instance showAttribute :: Show Attribute where
   show (Numeric n) = show n
   show (Text s) = s
 
+parseAttribute :: String -> Attribute
+parseAttribute attr =
+  case N.fromString attr of
+    Just n -> Numeric n
+    _ -> Text attr
+
 instance showNodeType :: Show NodeType where
   show Clade = "Clade"
   show Taxa = "Taxa"
@@ -87,38 +97,54 @@ instance showGraph :: Show Network where
 data Tree a
   = Leaf a
   | Internal a (Array (Tree a))
+  | Empty (M.Map String Attribute)
 
 derive instance eqTree :: Eq a => Eq (Tree a)
 
 instance functorTree :: Functor Tree where
   map f (Leaf n) = Leaf (f n)
   map f (Internal p cs) = Internal (f p) (map (map f) cs)
+  map _ (Empty x) = Empty x
+
+instance semigroupTree :: Semigroup (Tree a) where
+  append (Empty x) (Empty y) = Empty (M.union x y)
+  append (Empty _) n = n
+  append (Leaf l) c = Internal l [ c ]
+  append (Internal n cs) c = Internal n (c : cs)
+
+instance monoidTree :: Monoid (Tree a) where
+  mempty = Empty M.empty
 
 -- | Pre-order tree traversal
 instance foldableTree :: Foldable Tree where
   foldl f acc (Leaf n) = f acc n
   foldl f acc (Internal p cs) = foldl (foldl f) (f acc p) cs
+  foldl _ acc (Empty _) = acc
   foldMap f (Leaf n) = f n
   foldMap f (Internal p cs) = f p <> foldMap (foldMap f) cs
+  foldMap _ (Empty _) = mempty
   foldr f = foldrDefault f
 
-instance traverseNewickTree :: Traversable Tree where
+instance traversableTree :: Traversable Tree where
   traverse action (Leaf n) = Leaf <$> action n
   traverse action (Internal p cs) = Internal <$> action p <*> traverse (traverse action) cs
+  traverse _ (Empty x) = pure (Empty x)
   sequence = sequenceDefault
 
-instance showNewickTree :: Show a => Show (Tree a) where
+instance showTree :: Show a => Show (Tree a) where
   show (Leaf n) = "Leaf(" <> show n <> ")"
   show (Internal p cs) = "Internal(" <> show p <> ", " <> show cs <> ")"
+  show (Empty x) = "Empty(" <> show x <> ")"
 
 type Parser a = ParserT String Identity a
 
 interpretIntermediate :: Tree PNode -> Phylogeny
 interpretIntermediate tree =
   let
-    ancestor :: Tree PNode -> PNode
-    ancestor (Leaf l) = l
-    ancestor (Internal p _) = p
+    ancestor :: Tree PNode -> Maybe PNode
+    ancestor (Leaf l) = Just l
+    ancestor (Internal p _) = Just p
+    ancestor (Empty _) = Nothing
 
     getRef :: PNode -> Maybe Int
     getRef (PNode { ref }) = ref
@@ -149,6 +175,7 @@ interpretIntermediate tree =
     tagged = evalState (traverse assignRef tree) startRef
 
     children :: Tree PNode -> M.Map Int (List Int)
+    children (Empty _) = M.empty
     children (Leaf (PNode { ref })) =
       case ref of
         Just r -> M.singleton r Nil
@@ -157,7 +184,7 @@ interpretIntermediate tree =
       case ref of
         Just r -> foldl
           (\acc t -> M.unionWith (L.union) acc $ children t)
-          (M.singleton r (L.fromFoldable $ A.catMaybes $ getRef <<< ancestor <$> cs))
+          (M.singleton r (L.fromFoldable $ A.catMaybes $ (\t -> getRef =<< ancestor t) <$> cs))
           cs
         Nothing -> foldl (\acc t -> M.unionWith (L.union) acc $ children t) M.empty cs
 
@@ -169,6 +196,6 @@ interpretIntermediate tree =
         Nothing -> graph
 
   in
-    { root: fromMaybe 0 $ getRef $ ancestor tagged
+    { root: fromMaybe 0 $ (getRef =<< ancestor tagged)
     , network: Network $ fromMap $ M.fromFoldable $ foldr (foldFn) [] tagged
     }

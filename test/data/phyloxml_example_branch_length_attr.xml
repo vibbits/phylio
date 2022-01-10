@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phyloxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd"
+   xmlns="http://www.phyloxml.org">
+  <phylogeny rooted="true">
+    <clade>
+      <clade branch_length="0.06">
+        <name>A</name>
+        <clade branch_length="0.102">
+          <name>B</name>
+        </clade>
+        <clade branch_length="0.23">
+          <name>C</name>
+        </clade>
+      </clade>
+      <clade branch_length="0.4">
+        <name>D</name>
+        <something>
+          <bob>2</bob>
+          <else>
+            <here>here</here>
+          </else>
+        </something>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>

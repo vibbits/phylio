@@ -1,6 +1,14 @@
 module Bio.Phylogeny.Newick where
 
-import Bio.Phylogeny.Types (Attribute(..), NodeType(..), PNode(..), Parser, Phylogeny, Tree(..), interpretIntermediate)
+import Bio.Phylogeny.Types
+  ( Attribute(..)
+  , NodeType(..)
+  , PNode(..)
+  , Parser
+  , Phylogeny
+  , Tree(..)
+  , interpretIntermediate
+  )
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as A
