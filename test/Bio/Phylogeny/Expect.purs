@@ -1,12 +1,18 @@
 module Test.Bio.Phylogeny.Expect where
 
-import Data.Graph (Graph, lookup, topologicalSort, vertices)
 import Prelude
 
-import Bio.Phylogeny.Types (Network(..), NodeIdentifier, PNode(..), Phylogeny)
+import Bio.Phylogeny.Types
+  ( Network(..)
+  , NodeIdentifier
+  , PNode(..)
+  , ParseError(..)
+  )
+import Bio.Phylogeny (Phylogeny(..))
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array (fromFoldable)
 import Data.Either (Either(..))
+import Data.Graph (Graph, lookup, topologicalSort, vertices)
 import Data.List (catMaybes, length)
 import Data.Newtype (un)
 import Data.Tuple (Tuple)
@@ -16,7 +22,7 @@ import Test.Spec.Assertions (fail, shouldEqual)
 import Test.Spec.Assertions.String (shouldContain)
 
 graph :: Phylogeny -> Graph NodeIdentifier PNode
-graph phy = un Network phy.network
+graph (Phylogeny phy) = un Network phy.network
 
 nodeName :: PNode -> Tuple String Number
 nodeName (PNode { name, branchLength }) = (name /\ branchLength)
@@ -27,20 +33,20 @@ nameNodes phy =
   where
   g = graph phy
 
-expectNNodes :: forall m. MonadThrow Error m => Either String Phylogeny -> Int -> m Unit
+expectNNodes :: forall m. MonadThrow Error m => Either ParseError Phylogeny -> Int -> m Unit
 expectNNodes input n =
   (length <<< vertices <<< graph <$> input)
     `shouldEqual`
       Right n
 
-expectNames :: forall m. MonadThrow Error m => Either String Phylogeny -> Array (Tuple String Number) -> m Unit
+expectNames :: forall m. MonadThrow Error m => Either ParseError Phylogeny -> Array (Tuple String Number) -> m Unit
 expectNames input names =
   (nameNodes <$> input)
     `shouldEqual`
       Right names
 
-expectFail :: forall m. MonadThrow Error m => String -> Either String Phylogeny -> m Unit
+expectFail :: forall m. MonadThrow Error m => String -> Either ParseError Phylogeny -> m Unit
 expectFail message input =
   case input of
-    Left errm -> errm `shouldContain` message
+    Left (ParseError errm _) -> errm `shouldContain` message
     Right _ -> fail "Expected parser failure"

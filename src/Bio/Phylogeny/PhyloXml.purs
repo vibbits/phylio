@@ -2,29 +2,41 @@ module Bio.Phylogeny.PhyloXml where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Types (Attribute(..), NodeType(..), PNode(..), Parser, Phylogeny, Tree(..), interpretIntermediate)
+import Bio.Phylogeny.Types
+  ( Attribute(..)
+  , NodeType(..)
+  , PNode(..)
+  , ParseError
+  , Parser
+  , PartialPhylogeny(..)
+  , Phylogeny
+  , Tree(..)
+  , attributeToString
+  , interpretIntermediate
+  , parseAttribute
+  , toParseError
+  , toPhylogeny
+  )
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
-import Control.Monad.State (State, get, put, modify)
 import Data.Array as A
 import Data.Bifunctor (lmap)
-import Data.Either (Either)
-import Data.Filterable (filter, filterMap)
+import Data.Either (Either(..))
+import Data.Filterable (filter, partitionMap)
 import Data.Foldable (foldl)
-import Data.Interpolate (i)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype, over, un)
 import Data.Number as Number
 import Data.String as S
 import Data.String.CodeUnits (fromCharArray)
+import Data.Traversable (sequence)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Debug (trace)
 import Text.Parsing.Parser (fail, runParser)
 import Text.Parsing.Parser.Combinators (between, choice, many1, optional, sepBy, try)
 import Text.Parsing.Parser.String (char, oneOf, skipSpaces, string)
-import Text.Parsing.Parser.Token (alphaNum, letter, space)
+import Text.Parsing.Parser.Token (alphaNum, space)
 
 newtype XmlNode = XmlNode
   { name :: String
@@ -40,32 +52,23 @@ instance showXmlNode :: Show XmlNode where
   show (XmlNode node) =
     "XmlNode{" <> show node <> "}"
 
-parsePhyloXml :: String -> Either String Phylogeny
-parsePhyloXml input = lmap show $ runParser input phyloXmlParser'
+parsePhyloXml :: String -> Either ParseError Phylogeny
+parsePhyloXml input = lmap toParseError $ runParser input phyloXmlParser
 
 phyloXmlParser :: Parser Phylogeny
-phyloXmlParser = interpretIntermediate <$> (pure $ Leaf pnode)
-  where
-  pnode :: PNode
-  pnode = PNode
-    { name: "test"
-    , node: Clade
-    , branchLength: 0.0
-    , ref: Nothing
-    , attributes: M.empty
-    }
-
-phyloXmlParser' :: Parser Phylogeny
-phyloXmlParser' = do
+phyloXmlParser = do
   tree' <- phyloxml
-  if isPhyloXml tree' then
-    maybe (fail "Structure does not match") (\tree -> interpretIntermediate <$> pure tree) $ convert tree'
-  else
-    fail "Not a PhyloXML document"
-
-isPhyloXml :: Tree XmlNode -> Boolean
-isPhyloXml (Internal (XmlNode { name: "phyloxml" }) _) = true
-isPhyloXml _ = false
+  case convert tree' of
+    Right trees ->
+      pure
+        $ toPhylogeny
+        $ foldl
+            ( \acc@(PartialPhylogeny { maxRef }) p ->
+                acc <> interpretIntermediate (maxRef + 1) p
+            )
+            mempty
+            trees
+    Left err -> fail err
 
 branchLength :: M.Map String Attribute -> Maybe Number
 branchLength attrs =
@@ -73,11 +76,11 @@ branchLength attrs =
     Just (Numeric len) -> Just len
     _ -> Nothing
 
-pnode :: M.Map String Attribute -> PNode
-pnode attrs =
+pnode :: NodeType -> M.Map String Attribute -> PNode
+pnode nt attrs =
   PNode
-    { name: fromMaybe "" $ show <$> M.lookup "name" attrs
-    , node: Clade
+    { name: fromMaybe "" $ attributeToString <$> M.lookup "name" attrs
+    , node: nt
     , branchLength: fromMaybe 0.0 $ branchLength attrs
     , ref: Nothing
     , attributes: filteredAttrs
@@ -85,25 +88,29 @@ pnode attrs =
   where
   filteredAttrs = M.filterKeys (\key -> A.notElem key [ "name", "branch_length" ]) attrs
 
-convert :: Tree XmlNode -> Maybe (Tree PNode)
-convert (Internal (XmlNode xml@{ name }) chs) =
-  if A.elem name [ "phyloxml", "phylogeny" ] then
-    case A.head chs of
-      Just phylogeny -> convert phylogeny
-      _ -> Nothing
-  else if name == "clade" then
-    Just
-      ( Internal
-          (pnode xml.attributes)
-          (filterMap convert chs)
-      )
-  else
-    Nothing
+convert :: Tree XmlNode -> Either String (Array (Tree PNode))
+convert (Internal (XmlNode { name }) chs) =
+  case name of
+    "phyloxml" -> join <$> sequence (convert' <$> chs) -- TODO: Also pull out names and descriptions
+    _ -> Left "Not PhyloXML data: no top-level phyloxml tag"
+convert (Leaf _) =
+  Left "No trees in this PhyloXML document"
+convert (Empty _) = Left "Empty tree"
 
-convert (Leaf (XmlNode xml)) =
-  pure $ Leaf $ pnode xml.attributes
-
-convert (Empty empty) = Just $ Empty empty
+convert' :: Tree XmlNode -> Either String (Array (Tree PNode))
+convert' (Internal (XmlNode xml) children) =
+  case xml.name of
+    "phylogeny" -> join <$> (sequence $ convert' <$> children)
+    "clade" ->
+      Right
+        [ Internal
+            (pnode Clade xml.attributes)
+            (join (partitionMap convert' children).right)
+        ]
+    _ -> Left $ xml.name <> " is not a known phyloXML tree node"
+convert' (Leaf (XmlNode xml)) =
+  Right [ Leaf $ pnode Taxa xml.attributes ]
+convert' (Empty _) = Left "TODO: Remove the Empty constructor" -- TODO:
 
 tagNameChar :: Parser Char
 tagNameChar = choice [ alphaNum, oneOf [ '.', '-', '_', ':' ] ]
@@ -256,7 +263,7 @@ attribute = do
   val <- between (char '"') (char '"') attrValue
   case Number.fromString val of
     Just num -> pure (key /\ Numeric num)
-    _ -> pure (key /\ Text val)
+    _ -> pure (key /\ parseAttribute val)
 
 attributes :: Parser (M.Map String Attribute)
 attributes = M.fromFoldable <$> attribute `sepBy` (many1 space)
@@ -359,16 +366,21 @@ mergeAttributes (Internal node children) =
   mergeNode acc (Empty attrs) =
     over XmlNode (\node' -> node' { attributes = M.union node'.attributes attrs }) acc
   mergeNode (XmlNode acc) (Leaf (XmlNode node')) =
-    XmlNode
-      { name: acc.name
-      , attributes:
-          M.union
-            (M.union node'.attributes acc.attributes)
-            (valueAsAttr $ XmlNode node')
-      , value: Nothing
-      }
+    let
+      prefixed = (un XmlNode $ prefixAttrs node'.name $ XmlNode node').attributes
+    in
+      XmlNode
+        { name: acc.name
+        , attributes:
+            M.union
+              (M.union prefixed acc.attributes)
+              (valueAsAttr $ XmlNode node')
+        , value: Nothing
+        }
   mergeNode (XmlNode acc) (Internal (XmlNode node') children') =
     let
+      prefixed = (un XmlNode $ prefixAttrs node'.name $ XmlNode node').attributes
+
       (XmlNode child) = prefixAttrs node'.name $
         foldl mergeNode
           ( XmlNode
@@ -380,24 +392,19 @@ mergeAttributes (Internal node children) =
         { name: acc.name
         , attributes:
             M.union
-              (M.union node'.attributes child.attributes)
+              (M.union prefixed child.attributes)
               (M.union acc.attributes $ valueAsAttr $ XmlNode child)
         , value: Nothing
         }
 
   valueAsAttr :: XmlNode -> M.Map String Attribute
   valueAsAttr (XmlNode xml) =
-    case xml.value of
-      Just val -> M.singleton xml.name $ Text val
+    case parseAttribute <$> xml.value of
+      Just val -> M.singleton xml.name val
       Nothing -> M.empty
 
   prefixAttrs :: String -> XmlNode -> XmlNode
-  prefixAttrs prefix (XmlNode xml) =
-    XmlNode
-      { name: xml.name
-      , attributes: go xml.attributes
-      , value: xml.value
-      }
+  prefixAttrs prefix (XmlNode xml) = XmlNode (xml { attributes = go xml.attributes })
     where
     go :: M.Map String Attribute -> M.Map String Attribute
     go attrs = M.fromFoldable $ (makePrefix <$> M.toUnfoldable attrs :: Array (Tuple String Attribute))

@@ -2,13 +2,14 @@ module Bio.Phylogeny.Nexus where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Newick (newickParser)
-import Bio.Phylogeny.Types (Phylogeny)
+import Bio.Phylogeny.Newick (subTree)
+import Bio.Phylogeny.Types (PNode, ParseError(..), PartialPhylogeny(..), Phylogeny, Tree, interpretIntermediate, toParseError, toPhylogeny)
 import Control.Alt ((<|>))
 import Data.Array (many, fromFoldable)
 import Data.Bifunctor (lmap)
 import Data.Either (Either)
 import Data.Filterable (filterMap)
+import Data.Foldable (foldl)
 import Data.Identity (Identity)
 import Data.Maybe (Maybe(..))
 import Data.String (toUpper)
@@ -20,10 +21,10 @@ import Text.Parsing.Parser.Token (digit, letter)
 
 type Parser a = ParserT String Identity a
 
-data Block = Block String (Maybe Phylogeny)
+data Block = Block String (Maybe (Tree PNode))
 
-parseNexus :: String -> Either String Phylogeny
-parseNexus input = lmap show $ runParser input nexusParser
+parseNexus :: String -> Either ParseError Phylogeny
+parseNexus input = lmap toParseError $ runParser input nexusParser
 
 nexusParser :: Parser Phylogeny
 nexusParser =
@@ -31,10 +32,14 @@ nexusParser =
     _ <- string "#NEXUS"
     skipSpaces
     blocks <- many block
+    skipSpaces
     eof
-    case filterMap (\(Block _ phy) -> phy) $ blocks of
-      [ phylogeny ] -> pure phylogeny
-      _ -> fail "No valid trees"
+    case filterMap (\(Block _ phy) -> phy) blocks of
+      [] -> fail "No valid phylogenies"
+      trees ->
+        pure
+          $ toPhylogeny
+          $ foldl (\acc@(PartialPhylogeny { maxRef }) ptree -> acc <> interpretIntermediate maxRef ptree) mempty trees
 
 block :: Parser Block
 block = between begin end blockInner
@@ -59,7 +64,7 @@ begin = (string "BEGIN" <|> string "Begin") *> skipSpaces
 end :: Parser Unit
 end = skipSpaces <* (string "END;" <|> string "End;") *> skipSpaces
 
-tree :: Parser Phylogeny
+tree :: Parser (Tree PNode)
 tree = do
   _ <- string "Tree"
   skipSpaces
@@ -67,4 +72,4 @@ tree = do
   skipSpaces
   _ <- char '='
   skipSpaces
-  newickParser
+  subTree <* char ';'

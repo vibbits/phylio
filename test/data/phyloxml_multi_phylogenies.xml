@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phyloxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd"
+   xmlns="http://www.phyloxml.org">
+  <phylogeny rooted="true">
+    <name>Test 1</name>
+    <description>The first of 2 tests</description>
+    <clade>
+      <name>A</name>
+      <clade branch_length="0.06">
+        <name>B</name>
+      </clade>
+      <clade branch_length="0.4">
+        <name>C</name>
+      </clade>
+    </clade>
+  </phylogeny>
+  <phylogeny rooted="true">
+    <name>Test 2</name>
+    <description>The second of 2 tests</description>
+    <clade>
+      <name>D</name>
+      <clade branch_length="0.06">
+        <name>E</name>
+      </clade>
+      <clade branch_length="0.4">
+        <name>F</name>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>

@@ -1,23 +1,14 @@
 module Test.Bio.Phylogeny.Newick where
 
 import Prelude
-import Test.Bio.Phylogeny.Expect
 
-import Bio.Phylogeny.Newick (parseNewick)
-import Bio.Phylogeny.Types (Network(..), NodeIdentifier, PNode(..), Phylogeny)
-import Control.Monad.Error.Class (class MonadThrow)
-import Data.Array as A
-import Data.Either (Either(..))
-import Data.Graph as G
-import Data.List as L
-import Data.Newtype (un)
-import Data.Tuple (Tuple)
+import Bio.Phylogeny (parseNewick)
 import Data.Tuple.Nested ((/\))
-import Effect.Exception (Error)
-import Test.Spec (Spec, describe, it, parallel)
+import Test.Bio.Phylogeny.Expect (expectNNodes, expectNames)
+import Test.Spec (Spec, describe, it)
 
 specs :: Spec Unit
-specs = parallel do
+specs = do
   describe "Parse Newick"
     do
       it "Parses an empty sexpr" do
@@ -40,6 +31,11 @@ specs = parallel do
         parseNewick "( A, B ,  C );"
           `expectNames`
             [ ("" /\ 0.0), ("C" /\ 0.0), ("B" /\ 0.0), ("A" /\ 0.0) ]
+
+      it "Parses a name that contains spaces" do
+        parseNewick "(A node, B node);"
+          `expectNames`
+            [ ("" /\ 0.0), ("B node" /\ 0.0), ("A node" /\ 0.0) ]
 
       it "Parses a single node with a branch length" do
         parseNewick "A:1.1;" `expectNames` [ ("A" /\ 1.1) ]

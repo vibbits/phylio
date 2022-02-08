@@ -6,6 +6,7 @@
       <name>example from Prof. Joe Felsenstein's book "Inferring Phylogenies"</name>
       <description>phyloXML allows to use either a "branch_length" attribute or element to indicate branch lengths.</description>
       <clade>
+         <name>root 1</name>
          <clade branch_length="0.06">
             <clade branch_length="0.102">
                <name>A</name>
@@ -23,6 +24,7 @@
       <name>example from Prof. Joe Felsenstein's book "Inferring Phylogenies"</name>
       <description>phyloXML allows to use either a "branch_length" attribute or element to indicate branch lengths.</description>
       <clade>
+         <name>root 2</name>
          <clade>
             <branch_length>0.06</branch_length>
             <clade>
@@ -43,6 +45,7 @@
    <phylogeny rooted="true">
       <name>same example, with support of type "bootstrap"</name>
       <clade>
+         <name>root 3</name>
          <clade branch_length="0.06">
             <name>AB</name>
             <confidence type="bootstrap">89</confidence>
@@ -61,6 +64,7 @@
    <phylogeny rooted="true">
       <name>same example, with species and sequence</name>
       <clade>
+         <name>root 4</name>
          <clade>
             <name>AB</name>
             <clade>
@@ -105,6 +109,7 @@
    <phylogeny rooted="true">
       <name>same example, with gene duplication information and sequence relationships</name>
       <clade>
+         <name>root 5</name>
          <events>
             <speciations>1</speciations>
          </events>
@@ -152,6 +157,7 @@
    <phylogeny rooted="true">
       <name>similar example, with more detailed sequence data</name>
       <clade>
+         <name>root 6</name>
          <clade>
             <clade>
                <taxonomy>
@@ -204,6 +210,7 @@
    <phylogeny rooted="false">
       <name>network, node B is connected to TWO nodes: AB and C</name>
       <clade>
+         <name>root 7</name>
          <clade id_source="ab" branch_length="0.06">
             <name>AB</name>
             <clade id_source="a" branch_length="0.102">
@@ -222,6 +229,7 @@
    <phylogeny rooted="true">
       <name>same example, using property elements to indicate a "depth" value for marine organisms</name>
       <clade>
+         <name>root 8</name>
          <clade>
             <name>AB</name>
             <clade>
@@ -243,6 +251,7 @@
       <name>same example, using property elements to indicate a "depth" value for marine organisms by using id refs in
          order to have property elements outside of the tree topology</name>
       <clade>
+         <name>root 9</name>
          <clade>
             <name>AB</name>
             <clade id_source="id_a">
@@ -264,6 +273,7 @@
       <name>monitor lizards</name>
       <description>a pylogeny of some monitor lizards</description>
       <clade>
+         <name>root 10</name>
          <taxonomy>
             <id provider="NCBI">8556</id>
             <scientific_name>Varanus</scientific_name>
@@ -314,6 +324,7 @@
    <phylogeny rooted="true">
       <name>A tree with phylogeographic information</name>
       <clade>
+         <name>root 11</name>
          <clade>
             <clade>
                <name>A</name>
@@ -365,6 +376,7 @@
    <phylogeny rooted="true">
       <name>A tree with date information</name>
       <clade>
+         <name>root 12</name>
          <clade>
             <clade>
                <name>A</name>
@@ -395,6 +407,7 @@
    <phylogeny rooted="true">
       <name>Using another XML language to store an alignment</name>
       <clade>
+         <name>root 13</name>
          <clade>
             <clade>
                <name>A</name>

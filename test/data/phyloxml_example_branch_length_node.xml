@@ -4,16 +4,19 @@
    xmlns="http://www.phyloxml.org">
   <phylogeny rooted="true">
     <clade>
-      <clade branch_length="0.06">
+      <clade>
         <name>A</name>
-        <clade branch_length="0.102">
+        <branch_length>0.06</branch_length>
+        <clade>
+          <branch_length>0.102</branch_length>
           <name>B</name>
         </clade>
-        <clade branch_length="0.23">
+        <clade>
+          <branch_length>0.23</branch_length>
           <name>C</name>
         </clade>
       </clade>
-      <clade branch_length="0.4">
+      <clade>
         <name>D</name>
         <something>
           <bob>2</bob>
@@ -21,6 +24,7 @@
             <here x="y">here</here>
           </else>
         </something>
+        <branch_length>0.4</branch_length>
       </clade>
     </clade>
   </phylogeny>

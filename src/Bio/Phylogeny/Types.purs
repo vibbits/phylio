@@ -2,11 +2,12 @@ module Bio.Phylogeny.Types where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Control.Monad.State (State, evalState, get, modify)
 import Data.Array ((:))
 import Data.Array as A
 import Data.Enum (succ)
-import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault, maximum)
+import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault)
 import Data.Graph (Graph, fromMap, outEdges, topologicalSort, vertices)
 import Data.Identity (Identity)
 import Data.Interpolate (i)
@@ -14,18 +15,19 @@ import Data.List (List(Nil))
 import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
-import Data.Monoid (class Monoid)
 import Data.Newtype (class Newtype)
 import Data.Number as N
-import Data.Semigroup (class Semigroup)
+import Data.Number.Format as NF
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Text.Parsing.Parser (ParserT)
+import Text.Parsing.Parser as TPP
+import Text.Parsing.Parser.Pos as Pos
 
 data Attribute
   = Numeric Number
   | Text String
+  | Bool Boolean
 
 derive instance eqAttribute :: Eq Attribute
 
@@ -52,7 +54,13 @@ newtype PNode = PNode
 
 derive instance newtypePNode :: Newtype PNode _
 
-derive instance eqPNode :: Eq PNode
+instance eqPNode :: Eq PNode where
+  eq (PNode a) (PNode b) =
+    a.name == b.name && a.node == b.node && a.branchLength == b.branchLength && a.attributes == b.attributes
+
+instance ordPNode :: Ord PNode where
+  compare (PNode a) (PNode b) =
+    compare a.name b.name
 
 newtype Network = Network (Graph NodeIdentifier PNode)
 
@@ -64,20 +72,58 @@ instance eqNetwork :: Eq Network where
     edges :: Graph NodeIdentifier PNode -> List (Tuple NodeIdentifier NodeIdentifier)
     edges graph = (topologicalSort graph) >>= (\id -> (id /\ _) <$> fromMaybe Nil (outEdges id graph))
 
+type Metadata =
+  { name :: Maybe String
+  , parent :: NodeIdentifier
+  , rooted :: Boolean
+  , description :: Maybe String
+  }
+
 type Phylogeny =
-  { root :: NodeIdentifier
+  { metadata :: Array Metadata
   , network :: Network
   }
+
+newtype PartialPhylogeny = PartialPhylogeny
+  { metadata :: Array Metadata
+  , network :: M.Map NodeIdentifier (Tuple PNode (List NodeIdentifier))
+  , maxRef :: NodeIdentifier
+  }
+
+instance semigroupPartialPhylogeny :: Semigroup PartialPhylogeny where
+  append (PartialPhylogeny a) (PartialPhylogeny b) =
+    PartialPhylogeny
+      { metadata: a.metadata <> b.metadata
+      , network: M.union a.network b.network
+      , maxRef: max a.maxRef b.maxRef
+      }
+
+instance monoidPartialPhylogeny :: Monoid PartialPhylogeny where
+  mempty =
+    PartialPhylogeny
+      { metadata: []
+      , network: M.empty
+      , maxRef: 0
+      }
 
 instance showAttribute :: Show Attribute where
   show (Numeric n) = show n
   show (Text s) = s
+  show (Bool b) = show b
+
+attributeToString :: Attribute -> String
+attributeToString (Text s) = s
+attributeToString (Bool b) = show b
+attributeToString (Numeric n) = NF.toString n
 
 parseAttribute :: String -> Attribute
 parseAttribute attr =
   case N.fromString attr of
     Just n -> Numeric n
-    _ -> Text attr
+    _ -> case attr of
+      "true" -> Bool true
+      "false" -> Bool false
+      _ -> Text attr
 
 instance showNodeType :: Show NodeType where
   show Clade = "Clade"
@@ -88,10 +134,34 @@ instance showNodeType :: Show NodeType where
 
 instance showPNode :: Show PNode where
   show (PNode { name, node, branchLength, ref, attributes }) =
-    i "PNode{" name ", " (show node) ", " (show branchLength) ", " (show ref) ", " (show attributes) "}"
+    i "PNode{name=" name ", type=" (show node) ", BL=" (show branchLength) ", #" (show ref) ", attrs=" (show attributes) "}"
 
 instance showGraph :: Show Network where
   show (Network g) = show $ A.fromFoldable $ topologicalSort g
+
+newtype Position =
+  Position
+    { column :: Int
+    , line :: Int
+    }
+
+derive instance eqPosition :: Eq Position
+
+instance showPosition :: Show Position where
+  show (Position pos) =
+    "line: " <> show pos.line <> ", column: " <> show pos.column
+
+data ParseError =
+  ParseError String Position
+
+derive instance eqParseError :: Eq ParseError
+
+instance showParseError :: Show ParseError where
+  show (ParseError msg pos) = "ParseError: " <> msg <> " @ " <> show pos
+
+toParseError :: TPP.ParseError -> ParseError
+toParseError (TPP.ParseError msg (Pos.Position { column, line })) =
+  ParseError msg (Position { column: column, line: line })
 
 -- This is an intermediate representation for a Network
 data Tree a
@@ -136,26 +206,31 @@ instance showTree :: Show a => Show (Tree a) where
   show (Internal p cs) = "Internal(" <> show p <> ", " <> show cs <> ")"
   show (Empty x) = "Empty(" <> show x <> ")"
 
-type Parser a = ParserT String Identity a
+type Parser a = TPP.ParserT String Identity a
 
-interpretIntermediate :: Tree PNode -> Phylogeny
-interpretIntermediate tree =
+getRef :: PNode -> Maybe Int
+getRef (PNode { ref }) = ref
+
+maxRef :: Tree PNode -> Maybe Int
+maxRef =
+  foldl
+    ( \acc n ->
+        case getRef n of
+          Nothing -> acc
+          Just b -> (max b <$> acc) <|> Just b
+    )
+    Nothing
+
+interpretIntermediate :: Int -> Tree PNode -> PartialPhylogeny
+interpretIntermediate refOffset tree =
   let
     ancestor :: Tree PNode -> Maybe PNode
     ancestor (Leaf l) = Just l
     ancestor (Internal p _) = Just p
     ancestor (Empty _) = Nothing
 
-    getRef :: PNode -> Maybe Int
-    getRef (PNode { ref }) = ref
-
     startRef :: Int
-    startRef =
-      fromMaybe 0 $ (_ + 1) <$> maxRef
-      where
-      maxRef :: Maybe Int
-      maxRef = maximum $ A.catMaybes $ getRef
-        <$> foldl (\a b -> a <> [ b ]) [] tree
+    startRef = fromMaybe refOffset $ (_ + 1) <$> maxRef tree
 
     postIncrementRef :: State Int Int
     postIncrementRef = do
@@ -195,7 +270,24 @@ interpretIntermediate tree =
         Just r -> [ (r /\ (n /\ (fromMaybe Nil $ M.lookup r children'))) ] <> graph
         Nothing -> graph
 
+    inMeta :: Int -> Maybe Metadata
+    inMeta parent =
+      Just
+        { name: Nothing
+        , parent: parent
+        , rooted: false
+        , description: Nothing
+        }
+
   in
-    { root: fromMaybe 0 $ (getRef =<< ancestor tagged)
-    , network: Network $ fromMap $ M.fromFoldable $ foldr (foldFn) [] tagged
-    }
+    PartialPhylogeny
+      { metadata: A.fromFoldable (ancestor tagged >>= getRef >>= inMeta)
+      , network: M.fromFoldable $ foldr foldFn [] tagged
+      , maxRef: fromMaybe refOffset $ maxRef tagged
+      }
+
+toPhylogeny :: PartialPhylogeny -> Phylogeny
+toPhylogeny (PartialPhylogeny phylogeny) =
+  { metadata: phylogeny.metadata
+  , network: Network $ fromMap phylogeny.network
+  }

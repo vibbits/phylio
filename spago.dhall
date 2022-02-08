@@ -17,7 +17,6 @@ to generate this file without the comments in this block.
   , "bifunctors"
   , "console"
   , "control"
-  , "debug"
   , "effect"
   , "either"
   , "enums"
@@ -41,6 +40,7 @@ to generate this file without the comments in this block.
   , "psci-support"
   , "spec"
   , "strings"
+  , "stringutils"
   , "transformers"
   , "tuples"
   ]

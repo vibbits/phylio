@@ -1,13 +1,18 @@
 module Bio.Phylogeny.Newick where
 
+import Prelude
+
 import Bio.Phylogeny.Types
   ( Attribute(..)
   , NodeType(..)
   , PNode(..)
+  , ParseError
   , Parser
   , Phylogeny
   , Tree(..)
   , interpretIntermediate
+  , toParseError
+  , toPhylogeny
   )
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
@@ -19,21 +24,21 @@ import Data.Interpolate (i)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Number as N
+import Data.String (trim)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Prelude (bind, const, discard, pure, show, ($), (*>), (<$>), (<*), (<<<), (<>))
 import Text.Parsing.Parser (fail, runParser)
 import Text.Parsing.Parser.Combinators (between, many1, optional, optionMaybe, sepBy, try)
 import Text.Parsing.Parser.String (char, oneOf, skipSpaces, string)
-import Text.Parsing.Parser.Token (digit, letter)
+import Text.Parsing.Parser.Token (alphaNum, digit, letter, space)
 
 -- | Parse phylogenies serialised to the Newick format
-parseNewick :: String -> Either String Phylogeny
-parseNewick input = lmap show $ runParser input newickParser
+parseNewick :: String -> Either ParseError Phylogeny
+parseNewick input = lmap toParseError $ runParser input newickParser
 
 newickParser :: Parser Phylogeny
-newickParser = interpretIntermediate <$> subTree <* char ';'
+newickParser = toPhylogeny <<< interpretIntermediate 0 <$> subTree <* char ';'
 
 subTree :: Parser (Tree PNode)
 subTree = fix $ \p -> internal p <|> leaf
@@ -54,11 +59,11 @@ refp = do
 node :: NodeType -> Parser PNode
 node nt =
   let
-    extras = [ '.', '_' ]
+    extras = [ '.', '_', '-' ]
   in
     do
       skipSpaces
-      name' <- fromCharArray <$> A.many (letter <|> digit <|> oneOf extras)
+      name' <- trim <<< fromCharArray <$> A.many (alphaNum <|> space <|> oneOf extras)
       ref <- optionMaybe refp
       len <- length <|> pure 0.0
       skipSpaces

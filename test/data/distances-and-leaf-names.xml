@@ -1,0 +1,22 @@
+<phyloxml>
+  <phylogeny rooted="true">
+    <clade>
+      <clade branch_length="0.5">
+        <clade>
+          <name>D</name>
+          <branch_length>0.4</branch_length>
+        </clade>
+        <clade branch_length="0.3">
+          <name>C</name>
+        </clade>
+      </clade>
+      <clade>
+        <name>B</name>
+        <branch_length>0.2</branch_length>
+      </clade>
+      <clade branch_length="0.1">
+        <name>A</name>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>
