@@ -3,7 +3,16 @@ module Bio.Phylogeny.Nexus where
 import Prelude hiding (between)
 
 import Bio.Phylogeny.Newick (subTree)
-import Bio.Phylogeny.Types (PNode, ParseError(..), PartialPhylogeny(..), Phylogeny, Tree, interpretIntermediate, toParseError, toPhylogeny)
+import Bio.Phylogeny.Types
+  ( PNode
+  , ParseError
+  , PartialPhylogeny(..)
+  , Phylogeny
+  , Tree
+  , interpretIntermediate
+  , toParseError
+  , toPhylogeny
+  )
 import Control.Alt ((<|>))
 import Data.Array (many, fromFoldable)
 import Data.Bifunctor (lmap)

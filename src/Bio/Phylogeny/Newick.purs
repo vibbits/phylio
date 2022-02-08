@@ -1,6 +1,6 @@
 module Bio.Phylogeny.Newick where
 
-import Prelude
+import Prelude hiding (between)
 
 import Bio.Phylogeny.Types
   ( Attribute(..)

@@ -1,4 +1,12 @@
-module Bio.Phylogeny where
+module Bio.Phylogeny
+  ( Taxa
+  , Phylogeny(Phylogeny)
+  , roots
+  , parseNewick
+  , parseNexus
+  , parsePhyloXml
+  , reportError
+  ) where
 
 import Prelude
 
