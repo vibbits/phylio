@@ -1,6 +1,7 @@
 module Bio.Phylogeny
   ( Taxa
   , Phylogeny(Phylogeny)
+  , dot
   , roots
   , parseNewick
   , parseNexus
@@ -13,25 +14,18 @@ import Prelude
 import Bio.Phylogeny.Newick (parseNewick) as Internal
 import Bio.Phylogeny.Nexus (parseNexus) as Internal
 import Bio.Phylogeny.PhyloXml (parsePhyloXml) as Internal
-import Bio.Phylogeny.Types
-  ( Network(..)
-  , NodeIdentifier
-  , PNode(..)
-  , ParseError(..)
-  , Phylogeny
-  , Position(..)
-  ) as Internal
-import Data.Array as A
+import Bio.Phylogeny.Types (Network(..), NodeIdentifier, PNode(..), ParseError(..), Phylogeny, Position(..)) as Internal
 import Data.Array ((!!))
+import Data.Array as A
 import Data.Either (Either)
-import Data.Filterable (filter)
+import Data.Filterable (filter, filterMap)
 import Data.Graph as G
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (un)
 import Data.String.Utils (lines, repeat)
-import Data.Traversable (sequence)
+import Data.Traversable (intercalate, sequence)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 
@@ -112,3 +106,28 @@ dfTraverse root phylogeny =
   go :: L.List Int -> Int -> L.List Int
   go visited parent =
     parent : maybe visited (\ids -> ids >>= go visited) (filter (flip L.notElem visited) <$> G.outEdges parent graph')
+
+dot :: Phylogeny -> String
+dot phy =
+  let
+    extractPNode :: Taxa -> String
+    extractPNode tax@(Internal.PNode node) = case ref tax of
+      Just ref' -> show ref' <> " [label=\"" <> node.name <> "\"];"
+      Nothing -> "_" <> " [label=\"" <> node.name <> "\"];"
+
+    extractEdge :: Tuple Taxa Taxa -> Maybe String
+    extractEdge (from /\ to) = case ((ref from) /\ (ref to)) of
+      ((Just from') /\ (Just to')) -> Just (show from' <> " -> " <> show to')
+      _ -> Nothing
+
+    vertices' :: List String
+    vertices' = extractPNode <$> vertices phy
+
+    edges' :: List String
+    edges' = filterMap extractEdge $ edges phy
+  in
+    "strict digraph {\n\n  "
+      <> intercalate "\n  " vertices'
+      <> "\n\n  "
+      <> intercalate "\n  " edges'
+      <> "\n}"
