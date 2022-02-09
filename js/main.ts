@@ -1,5 +1,5 @@
 /**
- * JavaScript entrypoint to the PhylIO phylogeny library
+ * JavaScript entrypoint to the Phylio phylogeny library
  */
 
 import * as Internal from "../dce-output/Bio.Phylogeny/index.js";
