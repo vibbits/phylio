@@ -23,6 +23,7 @@ to generate this file without the comments in this block.
   , "exceptions"
   , "filterable"
   , "foldable-traversable"
+  , "foreign"
   , "graphs"
   , "identity"
   , "integers"

@@ -40,17 +40,26 @@ data NodeType
 
 derive instance eqNodeType :: Eq NodeType
 
+nodeTypeToString :: NodeType -> String
+nodeTypeToString Clade = "Clade"
+nodeTypeToString Taxa = "Taxa"
+nodeTypeToString Hybrid = "Hybrid"
+nodeTypeToString LateralGeneTransfer = "LateralGeneTransfer"
+nodeTypeToString Recombination = "Recombination"
+
 type NodeName = String
 
 type NodeIdentifier = Int
 
-newtype PNode = PNode
+type PNodeInternal =
   { name :: NodeName
   , node :: NodeType
   , branchLength :: Number
   , ref :: Maybe Int
   , attributes :: M.Map String Attribute
   }
+
+newtype PNode = PNode PNodeInternal
 
 derive instance newtypePNode :: Newtype PNode _
 
@@ -125,16 +134,9 @@ parseAttribute attr =
       "false" -> Bool false
       _ -> Text attr
 
-instance showNodeType :: Show NodeType where
-  show Clade = "Clade"
-  show Taxa = "Taxa"
-  show Hybrid = "Hybrid"
-  show LateralGeneTransfer = "LateralGeneTransfer"
-  show Recombination = "Recombination"
-
 instance showPNode :: Show PNode where
   show (PNode { name, node, branchLength, ref, attributes }) =
-    i "PNode{name=" name ", type=" (show node) ", BL=" (show branchLength) ", #" (show ref) ", attrs=" (show attributes) "}"
+    i "PNode{name=" name ", type=" (nodeTypeToString node) ", BL=" (show branchLength) ", #" (show ref) ", attrs=" (show attributes) "}"
 
 instance showGraph :: Show Network where
   show (Network g) = show $ A.fromFoldable $ topologicalSort g

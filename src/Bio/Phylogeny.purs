@@ -1,31 +1,49 @@
 module Bio.Phylogeny
   ( Taxa
   , Phylogeny(Phylogeny)
+  , attrsToForeign
   , dot
+  , edges
   , roots
   , parseNewick
   , parseNexus
   , parsePhyloXml
   , reportError
+  , traverseNetwork
+  , nodeTypeToString
+  , vertices
   ) where
 
+import Foreign (Foreign)
 import Prelude
 
 import Bio.Phylogeny.Newick (parseNewick) as Internal
 import Bio.Phylogeny.Nexus (parseNexus) as Internal
 import Bio.Phylogeny.PhyloXml (parsePhyloXml) as Internal
-import Bio.Phylogeny.Types (Network(..), NodeIdentifier, PNode(..), ParseError(..), Phylogeny, Position(..)) as Internal
+import Bio.Phylogeny.Types
+  ( Attribute(..)
+  , Network(..)
+  , NodeIdentifier
+  , NodeType
+  , PNode(..)
+  , PNodeInternal
+  , ParseError(..)
+  , Phylogeny
+  , Position(..)
+  , getRef
+  , nodeTypeToString
+  ) as Internal
 import Data.Array ((!!))
 import Data.Array as A
 import Data.Either (Either)
-import Data.Filterable (filter, filterMap)
+import Data.Filterable (filterMap)
+import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Graph as G
-import Data.List (List(..), (:))
-import Data.List as L
-import Data.Maybe (Maybe(..), maybe)
+import Data.Map (Map)
+import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Newtype (un)
 import Data.String.Utils (lines, repeat)
-import Data.Traversable (intercalate, sequence)
+import Data.Traversable (intercalate)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 
@@ -34,14 +52,36 @@ newtype Phylogeny = Phylogeny Internal.Phylogeny
 -- Two graphs are equal if they have the same vertex set and the same set of edges.
 instance eqPhylogeny :: Eq Phylogeny where
   eq a b =
-    L.sort (edges a) == L.sort (edges b)
-      && L.sort (vertices a) == L.sort (vertices b)
+    A.sort (edges a) == A.sort (edges b)
+      && A.sort (vertices a) == A.sort (vertices b)
       && A.sort (roots' a) == A.sort (roots' b)
 
 instance showPhylogeny :: Show Phylogeny where
   show (Phylogeny p) = show p
 
 type Taxa = Internal.PNode
+
+nodeTypeToString :: Internal.NodeType -> String
+nodeTypeToString = Internal.nodeTypeToString
+
+attrsToForeign
+  :: { text :: (String -> String -> Foreign)
+     , numeric :: (String -> Number -> Foreign)
+     , bool :: (String -> Boolean -> Foreign)
+     }
+  -> (Foreign -> Foreign -> Foreign)
+  -> Foreign
+  -> Map String Internal.Attribute
+  -> Foreign
+attrsToForeign { text, numeric, bool } f init attrs =
+  foldrWithIndex gen init attrs
+  where
+  gen :: String -> Internal.Attribute -> Foreign -> Foreign
+  gen k v acc =
+    case v of
+      Internal.Numeric n -> f acc $ numeric k n
+      Internal.Text t -> f acc $ text k t
+      Internal.Bool b -> f acc $ bool k b
 
 graph :: Phylogeny -> G.Graph Internal.NodeIdentifier Internal.PNode
 graph (Phylogeny { network }) = un Internal.Network network
@@ -54,23 +94,42 @@ roots phylogeny = A.catMaybes $ (flip G.lookup graph') <$> roots' phylogeny
   where
   graph' = graph phylogeny
 
-edges :: Phylogeny -> List (Tuple Taxa Taxa)
+edges :: Phylogeny -> Array (Tuple Taxa Taxa)
 edges phylogeny =
   vertices phylogeny >>= go
   where
   graph' :: G.Graph Internal.NodeIdentifier Internal.PNode
   graph' = graph phylogeny
 
-  go :: Taxa -> List (Tuple Taxa Taxa)
-  go node = case ref node of
-    Nothing -> Nil
-    Just idx -> (node /\ _) <$> L.catMaybes ((flip G.lookup graph') <$> (maybe Nil identity $ G.outEdges idx graph'))
+  go :: Taxa -> Array (Tuple Taxa Taxa)
+  go node = case Internal.getRef node of
+    Nothing -> []
+    Just idx -> (node /\ _) <$> A.catMaybes ((flip G.lookup graph') <$> (maybe [] A.fromFoldable $ G.outEdges idx graph'))
 
-vertices :: Phylogeny -> List Taxa
-vertices phylogeny = G.vertices $ graph phylogeny
+vertices :: Phylogeny -> Array Taxa
+vertices phylogeny = A.fromFoldable $ G.vertices $ graph phylogeny
 
-ref :: Taxa -> Maybe Int
-ref (Internal.PNode node) = node.ref
+traverseNetwork
+  :: (Internal.PNodeInternal -> Array Int -> Internal.PNodeInternal)
+  -> Phylogeny
+  -> Phylogeny
+traverseNetwork f (Phylogeny { metadata, network }) =
+  Phylogeny
+    { metadata: metadata
+    , network: (Internal.Network $ map nodeF theGraph)
+    }
+  where
+  theGraph :: G.Graph Int Taxa
+  theGraph = un Internal.Network network
+
+  nodeF :: Taxa -> Taxa
+  nodeF pnode@(Internal.PNode node) =
+    case node.ref of
+      Just ref' -> Internal.PNode
+        $ f node
+        $ fromMaybe []
+        $ A.fromFoldable <$> G.outEdges ref' theGraph
+      _ -> pnode
 
 -- Parsing
 parseNewick :: String -> Either Internal.ParseError Phylogeny
@@ -93,41 +152,23 @@ reportError (Internal.ParseError msg (Internal.Position { line, column })) input
     Just padding -> padding <> "^"
     _ -> ""
 
-dfTraverse :: Int -> Phylogeny -> L.List Taxa
-dfTraverse root phylogeny =
-  case A.find (_ == root) $ roots' phylogeny of
-    Nothing -> Nil
-    Just root' ->
-      maybe Nil identity $ sequence $ flip G.lookup graph' <$> go Nil root'
-  where
-  graph' :: G.Graph Internal.NodeIdentifier Internal.PNode
-  graph' = graph phylogeny
-
-  go :: L.List Int -> Int -> L.List Int
-  go visited parent =
-    parent : maybe visited (\ids -> ids >>= go visited) (filter (flip L.notElem visited) <$> G.outEdges parent graph')
-
 dot :: Phylogeny -> String
 dot phy =
   let
     extractPNode :: Taxa -> String
-    extractPNode tax@(Internal.PNode node) = case ref tax of
-      Just ref' -> show ref' <> " [label=\"" <> node.name <> "\"];"
-      Nothing -> "_" <> " [label=\"" <> node.name <> "\"];"
+    extractPNode tax@(Internal.PNode node) =
+      case Internal.getRef tax of
+        Just ref' -> show ref' <> " [label=\"" <> node.name <> "\"];"
+        Nothing -> "_" <> " [label=\"" <> node.name <> "\"];"
 
     extractEdge :: Tuple Taxa Taxa -> Maybe String
-    extractEdge (from /\ to) = case ((ref from) /\ (ref to)) of
-      ((Just from') /\ (Just to')) -> Just (show from' <> " -> " <> show to')
-      _ -> Nothing
-
-    vertices' :: List String
-    vertices' = extractPNode <$> vertices phy
-
-    edges' :: List String
-    edges' = filterMap extractEdge $ edges phy
+    extractEdge (from /\ to) =
+      case ((Internal.getRef from) /\ (Internal.getRef to)) of
+        ((Just from') /\ (Just to')) -> Just (show from' <> " -> " <> show to')
+        _ -> Nothing
   in
     "strict digraph {\n\n  "
-      <> intercalate "\n  " vertices'
+      <> intercalate "\n  " (extractPNode <$> vertices phy)
       <> "\n\n  "
-      <> intercalate "\n  " edges'
+      <> intercalate "\n  " (filterMap extractEdge $ edges phy)
       <> "\n}"

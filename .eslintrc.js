@@ -14,5 +14,11 @@ module.exports = {
   rules: {
     semi: ["error", "always"],
     eqeqeq: ["error", "always"],
+    "no-unused-vars": [
+      "error",
+      {
+        argsIgnorePattern: "^_",
+      },
+    ],
   },
 };
