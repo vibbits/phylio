@@ -151,7 +151,7 @@ tagName :: Parser String
 tagName = fromCharArray <<< A.fromFoldable <$> many1 tagNameChar
 
 reservedChars :: Parser Char
-reservedChars = oneOf [ '"' ]
+reservedChars = oneOf [ '"', '\'' ]
 
 extraChars :: Parser Char
 extraChars = oneOf
@@ -160,7 +160,6 @@ extraChars = oneOf
   , '$'
   , '%'
   , '&'
-  , '\''
   , '('
   , ')'
   , '*'
@@ -281,8 +280,11 @@ extraChars = oneOf
   ]
 
 attrValue :: Parser String
-attrValue =
-  fromCharArray <<< A.fromFoldable <$> A.many (alphaNum <|> space <|> extraChars)
+attrValue = (between (char '"') (char '"') $ attrValue' '\'')
+  <|> (between (char '\'') (char '\'') $ attrValue' '"')
+  where
+  attrValue' extra =
+    fromCharArray <<< A.fromFoldable <$> A.many (alphaNum <|> space <|> extraChars <|> char extra)
 
 value :: Parser String
 value =
@@ -292,7 +294,7 @@ attribute :: Parser (Tuple String Attribute)
 attribute = do
   key <- tagName
   _ <- char '='
-  val <- between (char '"') (char '"') attrValue
+  val <- attrValue
   case Number.fromString val of
     Just num -> pure (key /\ Numeric num)
     _ -> pure (key /\ parseAttribute val)
