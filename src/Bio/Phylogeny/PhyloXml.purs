@@ -11,11 +11,13 @@ import Bio.Phylogeny.Types
   , PartialPhylogeny(..)
   , Phylogeny
   , Tree(..)
+  , Metadata
+  , attributeToBool
   , attributeToString
   , interpretIntermediate
   , parseAttribute
   , toParseError
-  , toPhylogeny
+  , toAnnotatedPhylogeny
   )
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
@@ -31,7 +33,7 @@ import Data.Number as Number
 import Data.String as S
 import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (sequence)
-import Data.Tuple (Tuple)
+import Data.Tuple (Tuple, snd)
 import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser (fail, runParser)
 import Text.Parsing.Parser.Combinators (between, choice, many1, optional, sepBy, try)
@@ -59,9 +61,9 @@ phyloXmlParser :: Parser Phylogeny
 phyloXmlParser = do
   tree' <- phyloxml
   case convert tree' of
-    Right trees ->
+    Right { meta, trees } -> do
       pure
-        $ toPhylogeny
+        $ toAnnotatedPhylogeny meta
         $ foldl
             ( \acc@(PartialPhylogeny { maxRef }) p ->
                 acc <> interpretIntermediate (maxRef + 1) p
@@ -88,28 +90,58 @@ pnode nt attrs =
   where
   filteredAttrs = M.filterKeys (\key -> A.notElem key [ "name", "branch_length" ]) attrs
 
-convert :: Tree XmlNode -> Either String (Array (Tree PNode))
+metadata :: M.Map String Attribute -> Metadata
+metadata attrs =
+  { name: attributeToString <$> M.lookup "name" attrs
+  , parent: 0
+  , rooted: fromMaybe true (attributeToBool =<< M.lookup "rooted" attrs)
+  , description: attributeToString <$> M.lookup "description" attrs
+  }
+
+convert :: Tree XmlNode -> Either String { meta :: Array Metadata, trees :: (Array (Tree PNode)) }
 convert (Internal (XmlNode { name }) chs) =
-  case name of
-    "phyloxml" -> join <$> sequence (convert' <$> chs) -- TODO: Also pull out names and descriptions
-    _ -> Left "Not PhyloXML data: no top-level phyloxml tag"
+  let
+    children :: Either String (Array { meta :: Maybe Metadata, trees :: Array (Tree PNode) })
+    children = sequence (convert' <$> chs)
+  in
+    case name of
+      "phyloxml" ->
+        ( \ch ->
+            { meta: A.catMaybes $ _.meta <$> ch
+            , trees: join $ _.trees <$> ch
+            }
+        ) <$> children
+
+      _ -> Left "Not PhyloXML data: no top-level phyloxml tag"
 convert (Leaf _) =
   Left "No trees in this PhyloXML document"
-convert (Empty _) = Left "Empty tree"
+convert (Empty _) = Left "TODO: Remove the Empty ctor"
 
-convert' :: Tree XmlNode -> Either String (Array (Tree PNode))
+convert' :: Tree XmlNode -> Either String { meta :: Maybe Metadata, trees :: Array (Tree PNode) }
 convert' (Internal (XmlNode xml) children) =
-  case xml.name of
-    "phylogeny" -> join <$> (sequence $ convert' <$> children)
-    "clade" ->
-      Right
-        [ Internal
-            (pnode Clade xml.attributes)
-            (join (partitionMap convert' children).right)
-        ]
-    _ -> Left $ xml.name <> " is not a known phyloXML tree node"
+  let
+    convertedChildren :: Array (Tree PNode)
+    convertedChildren = join (_.trees <$> (partitionMap convert' children).right)
+  in
+    case xml.name of
+      "phylogeny" ->
+        Right
+          { meta: Just $ metadata xml.attributes
+          , trees: convertedChildren
+          }
+
+      "clade" ->
+        Right
+          { meta: Nothing
+          , trees:
+              [ Internal
+                  (pnode Clade xml.attributes)
+                  convertedChildren
+              ]
+          }
+      _ -> Left $ xml.name <> " is not a known phyloXML tree node"
 convert' (Leaf (XmlNode xml)) =
-  Right [ Leaf $ pnode Taxa xml.attributes ]
+  Right { meta: Nothing, trees: [ Leaf $ pnode Taxa xml.attributes ] }
 convert' (Empty _) = Left "TODO: Remove the Empty constructor" -- TODO:
 
 tagNameChar :: Parser Char

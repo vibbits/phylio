@@ -19,7 +19,7 @@ import Data.Newtype (class Newtype)
 import Data.Number as N
 import Data.Number.Format as NF
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Data.Tuple (Tuple)
+import Data.Tuple (Tuple, uncurry)
 import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser as TPP
 import Text.Parsing.Parser.Pos as Pos
@@ -124,6 +124,10 @@ attributeToString :: Attribute -> String
 attributeToString (Text s) = s
 attributeToString (Bool b) = show b
 attributeToString (Numeric n) = NF.toString n
+
+attributeToBool :: Attribute -> Maybe Boolean
+attributeToBool (Bool b) = Just b
+attributeToBool _ = Nothing
 
 parseAttribute :: String -> Attribute
 parseAttribute attr =
@@ -277,7 +281,7 @@ interpretIntermediate refOffset tree =
       Just
         { name: Nothing
         , parent: parent
-        , rooted: false
+        , rooted: true
         , description: Nothing
         }
 
@@ -293,3 +297,17 @@ toPhylogeny (PartialPhylogeny phylogeny) =
   { metadata: phylogeny.metadata
   , network: Network $ fromMap phylogeny.network
   }
+
+toAnnotatedPhylogeny :: Array Metadata -> PartialPhylogeny -> Phylogeny
+toAnnotatedPhylogeny metadata (PartialPhylogeny phylogeny) =
+  { metadata: uncurry mergeMetadata <$> A.zip metadata phylogeny.metadata
+  , network: Network $ fromMap phylogeny.network
+  }
+  where
+  mergeMetadata :: Metadata -> Metadata -> Metadata
+  mergeMetadata a b =
+    { name: a.name <|> b.name
+    , parent: max a.parent b.parent
+    , rooted: a.rooted || b.rooted
+    , description: a.description <|> b.description
+    }

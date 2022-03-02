@@ -54,7 +54,7 @@ instance eqPhylogeny :: Eq Phylogeny where
   eq a b =
     A.sort (edges a) == A.sort (edges b)
       && A.sort (vertices a) == A.sort (vertices b)
-      && A.sort (roots' a) == A.sort (roots' b)
+      && A.sort (roots a) == A.sort (roots b)
 
 instance showPhylogeny :: Show Phylogeny where
   show (Phylogeny p) = show p
