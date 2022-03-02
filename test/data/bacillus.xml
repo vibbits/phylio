@@ -1,0 +1,18 @@
+<phyloxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.phyloxml.org" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd">
+  <phylogeny rooted="false">
+    <clade>
+      <clade>
+        <name>B_cereus_AFS065770_GCF_002568015</name>
+        <branch_length>0.06343</branch_length>
+      </clade>
+      <clade>
+        <name>B_mosaicus_PR02_GCF_001683155</name>
+        <branch_length>0.00975</branch_length>
+      </clade>
+      <clade>
+        <name>YN127_spades_contig_FLBD</name>
+        <branch_length>0.01507</branch_length>
+      </clade>
+    </clade>
+  </phylogeny>
+</phyloxml>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+        <phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+        <phylogeny rooted="true">
+    <clade><name>O</name><branch_length>1.0</branch_length></clade><clade><clade><clade><name>P1</name><branch_length>0.25</branch_length></clade><clade><name>#H1</name><branch_length>0.25</branch_length><branch_length>0.5</branch_length></clade><branch_length>0.25</branch_length></clade><clade><clade><name>P2</name><branch_length>0.25</branch_length></clade><clade><clade><name>HYB</name><branch_length>0.25</branch_length></clade><name>#H1</name><branch_length>0</branch_length><branch_length>0.5</branch_length></clade><branch_length>0.25</branch_length></clade><branch_length>0.5</branch_length></clade></phylogeny></phyloxml>

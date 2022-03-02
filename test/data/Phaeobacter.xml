@@ -1,49 +1,49 @@
 <phyloxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.phyloxml.org" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd">
-  <phylogeny rooted="true">
+  <phylogeny rooted="false">
     <clade>
       <clade>
         <branch_length>0.01440586</branch_length>
         <clade>
           <branch_length>0.02886128</branch_length>
-          <name>100</name>
+          <confidence type="unknown">100</confidence>
           <clade>
             <branch_length>0.02692269</branch_length>
-            <name>100</name>
+            <confidence type="unknown">100</confidence>
             <clade>
               <branch_length>0.03401344</branch_length>
-              <name>92</name>
+              <confidence type="unknown">92</confidence>
               <clade>
-                <name>Phaeobacter inhibens DSM 17395</name>
+                <name>17395</name>
                 <branch_length>0.01271747</branch_length>
               </clade>
               <clade>
-                <name>Phaeobacter sp. BS34</name>
+                <name>BS34</name>
                 <branch_length>0.01717253</branch_length>
               </clade>
             </clade>
             <clade>
               <branch_length>0.012492</branch_length>
-              <name>94</name>
+              <confidence type="unknown">94</confidence>
               <clade>
-                <name>Phaeobacter gallaeciensis DSM 26640</name>
+                <name>26640</name>
                 <branch_length>0.04734506</branch_length>
               </clade>
               <clade>
                 <branch_length>0.01861594</branch_length>
-                <name>95</name>
+                <confidence type="unknown">95</confidence>
                 <clade>
-                  <name>Phaeobacter piscinae P14</name>
+                  <name>P14</name>
                   <branch_length>0.02395787</branch_length>
                 </clade>
                 <clade>
                   <branch_length>0.00362613</branch_length>
-                  <name>75</name>
+                  <confidence type="unknown">75</confidence>
                   <clade>
-                    <name>Phaeobacter sp. BS52</name>
+                    <name>BS52</name>
                     <branch_length>0.0164975</branch_length>
                   </clade>
                   <clade>
-                    <name>Phaeobacter sp. BS23</name>
+                    <name>BS23</name>
                     <branch_length>0.0160535</branch_length>
                   </clade>
                 </clade>
@@ -51,17 +51,17 @@
             </clade>
           </clade>
           <clade>
-            <name>Phaeobacter porticola P97</name>
+            <name>P97</name>
             <branch_length>0.08377522</branch_length>
           </clade>
         </clade>
         <clade>
-          <name>Phaeobacter italicus DSM 26436</name>
+          <name>26436</name>
           <branch_length>0.10546525</branch_length>
         </clade>
       </clade>
       <clade>
-        <name>Phaeobacter marinintestinus UB-M7</name>
+        <name>UB-M7</name>
         <branch_length>0.13002689</branch_length>
       </clade>
     </clade>
