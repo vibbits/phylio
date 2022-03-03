@@ -3,13 +3,13 @@
  */
 
 //@ts-ignore - This PureScript import should be safe
-import * as Internal from "../output/Bio.Phylogeny/index.js";
+import * as Internal from "../dce-output/Bio.Phylogeny/index.js";
 //@ts-ignore - This PureScript import should be safe
-import { either } from "../output/Data.Either/index.js";
+import { either } from "../dce-output/Data.Either/index.js";
 //@ts-ignore - This PureScript import should be safe
-import { fromMaybe } from "../output/Data.Maybe/index.js";
+import { fromMaybe } from "../dce-output/Data.Maybe/index.js";
 //@ts-ignore - This PureScript import should be safe
-import { fst, snd } from "../output/Data.Tuple/index.js";
+import { fst, snd } from "../dce-output/Data.Tuple/index.js";
 
 interface Metadata {
   name: string | undefined;
