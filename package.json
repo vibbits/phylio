@@ -1,6 +1,6 @@
 {
-  "name": "phylio",
-  "version": "1.0.0",
+  "name": "@vibbioinfocore/phylio",
+  "version": "0.0.1",
   "description": "Read, write, and manipulate phylogenetic trees",
   "main": "dist/index.mjs",
   "directories": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "spago build --purs-args '--codegen corefn' && zephyr -f -e Bio.Phylogeny && esbuild js/main.ts --bundle --minify --platform=browser --format=esm --outfile=dist/index.mjs",
-    "build-debug": "spago build && esbuild js/main.ts --bundle --platform=browser --format=esm --outfile=dist/index-debug.mjs",
+    "build-debug": "spago build && esbuild js/main.ts --bundle --platform=browser --outfile=dist/index-debug.mjs",
     "test": "spago test && npm run test-js",
     "test-js": "jasmine",
     "lint": "tsc --noEmit && eslint 'js/**/*.ts'"
@@ -18,14 +18,15 @@
     "url": "git+https://github.com/vibbits/phylio.git"
   },
   "keywords": [
-    "phylogenetic",
+    "phylogeny",
     "tree",
-    "newick",
+    "network",
+    "Newick",
     "NHX",
     "PhyloXML",
     "NEXUS",
-    "PureScript",
-    "TypeScript"
+    "Purescript",
+    "Typescript"
   ],
   "author": "James Collier",
   "license": "MIT",
@@ -38,16 +39,16 @@
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-typescript": "^7.16.7",
     "@babel/register": "^7.17.0",
-    "@typescript-eslint/eslint-plugin": "^5.11.0",
-    "@typescript-eslint/parser": "^5.11.0",
-    "esbuild": "^0.14.20",
-    "eslint": "^8.8.0",
+    "@typescript-eslint/eslint-plugin": "^5.13.0",
+    "@typescript-eslint/parser": "^5.13.0",
+    "esbuild": "^0.14.24",
+    "eslint": "^8.10.0",
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
     "jasmine": "^4.0.2",
-    "purescript": "^0.14.5",
-    "spago": "^0.20.5",
-    "typescript": "^4.5.5"
+    "purescript": "^0.14.7",
+    "spago": "^0.20.7",
+    "typescript": "^4.6.2"
   }
 }
