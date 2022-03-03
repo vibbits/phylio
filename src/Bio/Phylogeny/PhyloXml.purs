@@ -33,7 +33,7 @@ import Data.Number as Number
 import Data.String as S
 import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (sequence)
-import Data.Tuple (Tuple, snd)
+import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser (fail, runParser)
 import Text.Parsing.Parser.Combinators (between, choice, many1, optional, sepBy, try)

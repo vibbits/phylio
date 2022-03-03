@@ -2,12 +2,9 @@ module Test.Compare where
 
 import Prelude
 
-import Bio.Phylogeny (Phylogeny(..), parsePhyloXml, parseNewick, dot, edges, vertices, roots)
-import Data.Array as A
-import Data.Map as M
+import Bio.Phylogeny (parsePhyloXml, parseNewick)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (readTextFile)
-import Test.Bio.Phylogeny.Expect (nameNodes)
 import Test.Path ((</>), testDir)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
