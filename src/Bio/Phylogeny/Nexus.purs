@@ -5,17 +5,14 @@ import Prelude hiding (between)
 import Bio.Phylogeny.Newick (subTree)
 import Bio.Phylogeny.Types
   ( PNode
-  , ParseError
   , PartialPhylogeny(..)
   , Phylogeny
   , Tree
   , interpretIntermediate
-  , toParseError
   , toPhylogeny
   )
 import Control.Alt ((<|>))
 import Data.Array (many, fromFoldable)
-import Data.Bifunctor (lmap)
 import Data.Either (Either)
 import Data.Filterable (filterMap)
 import Data.Foldable (foldl)
@@ -23,17 +20,18 @@ import Data.Identity (Identity)
 import Data.Maybe (Maybe(..))
 import Data.String (toUpper)
 import Data.String.CodeUnits (fromCharArray)
-import Text.Parsing.Parser (ParserT, fail, runParser)
-import Text.Parsing.Parser.Combinators (between, lookAhead, many1, manyTill)
-import Text.Parsing.Parser.String (anyChar, char, eof, skipSpaces, string)
-import Text.Parsing.Parser.Token (digit, letter)
+import Parsing (ParserT, fail, runParser, ParseError)
+import Parsing.Combinators (between, lookAhead, many1, manyTill)
+import Parsing.String (anyChar, char, eof, string)
+import Parsing.String.Basic (skipSpaces)
+import Parsing.Token (digit, letter)
 
 type Parser a = ParserT String Identity a
 
 data Block = Block String (Maybe (Tree PNode))
 
 parseNexus :: String -> Either ParseError Phylogeny
-parseNexus input = lmap toParseError $ runParser input nexusParser
+parseNexus input = runParser input nexusParser
 
 nexusParser :: Parser Phylogeny
 nexusParser =

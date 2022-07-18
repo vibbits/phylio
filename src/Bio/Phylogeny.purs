@@ -27,9 +27,7 @@ import Bio.Phylogeny.Types
   , NodeType
   , PNode(..)
   , PNodeInternal
-  , ParseError(..)
   , Phylogeny
-  , Position(..)
   , getRef
   , nodeTypeToString
   ) as Internal
@@ -46,6 +44,7 @@ import Data.String.Utils (lines, repeat)
 import Data.Traversable (intercalate)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
+import Parsing (Position(..), ParseError(..))
 
 newtype Phylogeny = Phylogeny Internal.Phylogeny
 
@@ -132,17 +131,17 @@ traverseNetwork f (Phylogeny { metadata, network }) =
       _ -> pnode
 
 -- Parsing
-parseNewick :: String -> Either Internal.ParseError Phylogeny
+parseNewick :: String -> Either ParseError Phylogeny
 parseNewick input = Phylogeny <$> Internal.parseNewick input
 
-parsePhyloXml :: String -> Either Internal.ParseError Phylogeny
+parsePhyloXml :: String -> Either ParseError Phylogeny
 parsePhyloXml input = Phylogeny <$> Internal.parsePhyloXml input
 
-parseNexus :: String -> Either Internal.ParseError Phylogeny
+parseNexus :: String -> Either ParseError Phylogeny
 parseNexus input = Phylogeny <$> Internal.parseNexus input
 
-reportError :: Internal.ParseError -> String -> String
-reportError (Internal.ParseError msg (Internal.Position { line, column })) input =
+reportError :: ParseError -> String -> String
+reportError (ParseError msg (Position { line, column })) input =
   "ERROR: " <> msg <> "\n" <> offender <> "\n" <> location
   where
   offender = case lines input !! (line - 1) of

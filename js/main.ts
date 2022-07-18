@@ -3,27 +3,27 @@
  */
 
 //@ts-ignore - This PureScript import should be safe
-import * as Internal from "../dce-output/Bio.Phylogeny/index.js";
+import * as Internal from "../output/Bio.Phylogeny/index.js";
 //@ts-ignore - This PureScript import should be safe
-import { either } from "../dce-output/Data.Either/index.js";
+import { either } from "../output/Data.Either/index.js";
 //@ts-ignore - This PureScript import should be safe
-import { fromMaybe } from "../dce-output/Data.Maybe/index.js";
+import { fromMaybe } from "../output/Data.Maybe/index.js";
 //@ts-ignore - This PureScript import should be safe
-import { fst, snd } from "../dce-output/Data.Tuple/index.js";
+import { fst, snd } from "../output/Data.Tuple/index.js";
 
-interface Metadata {
+export interface Metadata {
   name: string | undefined;
   parent: number;
   rooted: boolean;
   description: string | undefined;
 }
 
-interface Phylogeny {
+export interface Phylogeny {
   metadata: Array<Metadata>;
   network: unknown;
 }
 
-type NodeType =
+export type NodeType =
   | "Clade"
   | "Taxa"
   | "Hybrid"
@@ -35,7 +35,7 @@ type TextAttr = { tag: "text"; value: string };
 type BoolAttr = { tag: "bool"; value: boolean };
 type Attribute = NumericAttr | TextAttr | BoolAttr;
 
-interface Taxa {
+export interface Taxa {
   name: string;
   node: NodeType;
   branchLength: number;
@@ -94,8 +94,11 @@ export const edges = (graph: unknown): Array<{ from: Taxa; to: Taxa }> => {
   });
 };
 
-export const vertices = (graph: unknown) =>
+export const vertices = (graph: unknown): Array<Taxa> =>
   Internal.vertices(graph).map(toTaxa);
+
+export const roots = (graph: unknown): Array<Taxa> =>
+  Internal.roots(graph).map(toTaxa);
 
 export const traverse = (
   fn: (_taxa: Taxa, _children: Array<number>) => Taxa,

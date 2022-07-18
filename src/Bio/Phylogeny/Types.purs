@@ -6,6 +6,7 @@ import Control.Alt ((<|>))
 import Control.Monad.State (State, evalState, get, modify)
 import Data.Array ((:))
 import Data.Array as A
+import Data.Either (Either(Right))
 import Data.Enum (succ)
 import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault)
 import Data.Graph (Graph, fromMap, outEdges, topologicalSort, vertices)
@@ -18,11 +19,12 @@ import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Newtype (class Newtype)
 import Data.Number as N
 import Data.Number.Format as NF
+import Data.String.Regex as RE
+import Data.String.Regex.Flags (noFlags)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Data.Tuple (Tuple, uncurry)
 import Data.Tuple.Nested ((/\))
-import Text.Parsing.Parser as TPP
-import Text.Parsing.Parser.Pos as Pos
+import Parsing (ParserT)
 
 data Attribute
   = Numeric Number
@@ -131,9 +133,15 @@ attributeToBool _ = Nothing
 
 parseAttribute :: String -> Attribute
 parseAttribute attr =
-  case N.fromString attr of
-    Just n -> Numeric n
-    _ -> case attr of
+  -- If the string contains only numeric characters try to make a number
+  -- This is because `fromString` will accept string that onlt *start* with numbers
+  -- so a value like "25_BRACA" will become `Numeric 25` otherwise
+  if (flip RE.test attr <$> RE.regex "^\\d*.?\\d*$" noFlags) == Right true then
+    case N.fromString attr of
+      Just num -> Numeric num
+      _ -> Text attr
+  else
+    case attr of
       "true" -> Bool true
       "false" -> Bool false
       _ -> Text attr
@@ -144,30 +152,6 @@ instance showPNode :: Show PNode where
 
 instance showGraph :: Show Network where
   show (Network g) = show $ A.fromFoldable $ topologicalSort g
-
-newtype Position =
-  Position
-    { column :: Int
-    , line :: Int
-    }
-
-derive instance eqPosition :: Eq Position
-
-instance showPosition :: Show Position where
-  show (Position pos) =
-    "line: " <> show pos.line <> ", column: " <> show pos.column
-
-data ParseError =
-  ParseError String Position
-
-derive instance eqParseError :: Eq ParseError
-
-instance showParseError :: Show ParseError where
-  show (ParseError msg pos) = "ParseError: " <> msg <> " @ " <> show pos
-
-toParseError :: TPP.ParseError -> ParseError
-toParseError (TPP.ParseError msg (Pos.Position { column, line })) =
-  ParseError msg (Position { column: column, line: line })
 
 -- This is an intermediate representation for a Network
 data Tree a
@@ -212,7 +196,7 @@ instance showTree :: Show a => Show (Tree a) where
   show (Internal p cs) = "Internal(" <> show p <> ", " <> show cs <> ")"
   show (Empty x) = "Empty(" <> show x <> ")"
 
-type Parser a = TPP.ParserT String Identity a
+type Parser a = ParserT String Identity a
 
 getRef :: PNode -> Maybe Int
 getRef (PNode { ref }) = ref

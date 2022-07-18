@@ -6,7 +6,6 @@ import Bio.Phylogeny.Types
   ( Network(..)
   , NodeIdentifier
   , PNode(..)
-  , ParseError(..)
   )
 import Bio.Phylogeny (Phylogeny(..))
 import Control.Monad.Error.Class (class MonadThrow)
@@ -18,6 +17,7 @@ import Data.Newtype (un)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Exception (Error)
+import Parsing (ParseError(..))
 import Test.Spec.Assertions (fail, shouldEqual)
 import Test.Spec.Assertions.String (shouldContain)
 

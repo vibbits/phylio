@@ -6,7 +6,6 @@ import Bio.Phylogeny.Types
   ( Attribute(..)
   , NodeType(..)
   , PNode(..)
-  , ParseError
   , Parser
   , PartialPhylogeny(..)
   , Phylogeny
@@ -16,13 +15,11 @@ import Bio.Phylogeny.Types
   , attributeToString
   , interpretIntermediate
   , parseAttribute
-  , toParseError
   , toAnnotatedPhylogeny
   )
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as A
-import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Filterable (filter, partitionMap)
 import Data.Foldable (foldl)
@@ -35,10 +32,11 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Text.Parsing.Parser (fail, runParser)
-import Text.Parsing.Parser.Combinators (between, choice, many1, optional, sepBy, try)
-import Text.Parsing.Parser.String (char, oneOf, skipSpaces, string)
-import Text.Parsing.Parser.Token (alphaNum, space)
+import Parsing (fail, runParser, ParseError)
+import Parsing.Combinators (between, choice, many1, optional, sepBy, try)
+import Parsing.String (char, string)
+import Parsing.String.Basic (oneOf, skipSpaces)
+import Parsing.Token (alphaNum, space)
 
 newtype XmlNode = XmlNode
   { name :: String
@@ -55,7 +53,7 @@ instance showXmlNode :: Show XmlNode where
     "XmlNode{" <> show node <> "}"
 
 parsePhyloXml :: String -> Either ParseError Phylogeny
-parsePhyloXml input = lmap toParseError $ runParser input phyloXmlParser
+parsePhyloXml input = runParser input phyloXmlParser
 
 phyloXmlParser :: Parser Phylogeny
 phyloXmlParser = do

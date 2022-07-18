@@ -108,6 +108,21 @@ specs = do
           `expectNames`
             [ ("A" /\ 0.0), ("F" /\ 0.1), ("E" /\ 0.5), ("D" /\ 0.4), ("C" /\ 0.3), ("B" /\ 0.2) ]
 
+  describe "Parse ad-hoc extensions" do
+    it "Parses tree with MrBayes comments" do
+      parseNewick "(8[&prob=1.0]:2.94e-1[&length_mean=2.9e-1])[&prob=1.0][&length_mean=0];"
+        `expectNames`
+          [ ("8" /\ 0.294)
+          , ("" /\ 0.0)
+          ]
+
+    it "Parses a tree with [] comments" do
+      parseNewick "(Archaea:0.43325[100]):0.88776);"
+        `expectNames`
+          [ ("Archaea" /\ 0.43325)
+          , ("" /\ 0.88776)
+          ]
+
   describe "Parse Extended Newick networks"
     do
       it "Parses an Extended Newick network" do
@@ -123,6 +138,15 @@ specs = do
             , ("A" /\ 0.0)
             , ("x" /\ 0.0)
             , ("Y" /\ 0.0)
+            ]
+
+      it "Parses diamond network" do
+        parseNewick "((d#1)b,(d#1)c)a;"
+          `expectNames`
+            [ ("a" /\ 0.0)
+            , ("c" /\ 0.0)
+            , ("b" /\ 0.0)
+            , ("d" /\ 0.0)
             ]
 
   describe "Parse NHX"

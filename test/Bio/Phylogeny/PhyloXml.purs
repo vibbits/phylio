@@ -8,7 +8,7 @@ import Data.Either (Either(..))
 import Data.Tuple.Nested ((/\))
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (readTextFile)
-import Test.Bio.Phylogeny.Expect (expectNames, expectFail, nodeName)
+import Test.Bio.Phylogeny.Expect (expectFail, expectNames, nodeName)
 import Test.Path ((</>), testDir)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
@@ -63,3 +63,9 @@ specs = do
         `expectNames`
           [ ("" /\ 0.0), ("D" /\ 0.4), ("A" /\ 0.06), ("C" /\ 0.23), ("B" /\ 0.102) ]
 
+    it "Parses a clade name in the shape NUMBER_LETTERS" do
+      text <- readTextFile UTF8 $ testDir </> "NUMBER_LETTERS.phyloxml"
+
+      parsePhyloXml text
+        `expectNames`
+          [ ("25_BRAFL" /\ 0.4534) ]

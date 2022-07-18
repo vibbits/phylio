@@ -14,9 +14,9 @@ to generate this file without the comments in this block.
 , dependencies =
   [ "aff"
   , "arrays"
-  , "bifunctors"
   , "console"
   , "control"
+  , "debug"
   , "effect"
   , "either"
   , "enums"
