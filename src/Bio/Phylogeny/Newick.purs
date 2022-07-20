@@ -17,7 +17,6 @@ import Control.Lazy (fix)
 import Data.Array as A
 import Data.Either (Either)
 import Data.Int as I
-import Data.Interpolate (i)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Number as N
@@ -26,9 +25,9 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Parsing (fail, runParser, ParseError)
-import Parsing.Combinators (between, many1, optional, optionMaybe, sepBy, try)
+import Parsing.Combinators (between, many1, optionMaybe, sepBy, try)
 import Parsing.String (char, string)
-import Parsing.String.Basic (oneOf, skipSpaces)
+import Parsing.String.Basic (number, oneOf, skipSpaces)
 import Parsing.Token (alphaNum, digit, letter, space)
 
 -- | Parse phylogenies serialised to the Newick format
@@ -52,7 +51,7 @@ refp = do
   n <- fromCharArray <<< A.fromFoldable <$> many1 digit
   case I.fromString n of
     Just r -> pure (r /\ t)
-    Nothing -> fail $ i "References must be an integer: " n
+    Nothing -> fail ("References must be an integer: " <> n)
 
 node :: NodeType -> Parser PNode
 node nt =
@@ -63,11 +62,11 @@ node nt =
       skipSpaces
       name' <- trim <<< fromCharArray <$> A.many (alphaNum <|> space <|> oneOf extras)
       ref <- optionMaybe refp
-      optional comment
+      try comment <|> pure unit
       len <- length <|> pure 0.0
       skipSpaces
       attrs <- try attributes <|> pure M.empty
-      optional comment
+      try comment <|> pure unit
       skipSpaces
       case ref of
         Just (id /\ nodet) -> pure $ PNode
@@ -84,15 +83,6 @@ node nt =
           , attributes: attrs
           , ref: Nothing
           }
-
-number :: Parser Number
-number = do
-  a <- fromCharArray <<< A.fromFoldable <$> many1 digit
-  _ <- optional $ char '.'
-  b <- fromCharArray <<< A.fromFoldable <$> A.many digit
-  case N.fromString $ a <> "." <> b of
-    Nothing -> fail "Not a number"
-    Just num -> pure num
 
 length :: Parser Number
 length = char ':' *> number

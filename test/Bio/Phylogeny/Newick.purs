@@ -3,21 +3,35 @@ module Test.Bio.Phylogeny.Newick where
 import Prelude
 
 import Bio.Phylogeny (parseNewick)
+import Data.Either (isLeft)
 import Data.Tuple.Nested ((/\))
 import Test.Bio.Phylogeny.Expect (expectNNodes, expectNames)
 import Test.Spec (Spec, describe, it)
+import Test.Spec.Assertions (shouldSatisfy)
 
 specs :: Spec Unit
 specs = do
   describe "Parse Newick"
     do
-      it "Parses an empty sexpr" do
+      it "Parses an empty phylogeny" do
         parseNewick "();" `expectNNodes` 2
+
+      it "Parses an single semicolon phylogeny" do
+        parseNewick ";" `expectNNodes` 1
+
+      it "Fails to parse phylogeny with missing semicolon" do
+        parseNewick "()" `shouldSatisfy` isLeft
+
+      it "Fails to parse phylogeny with missing closing paren" do
+        parseNewick "(" `shouldSatisfy` isLeft
+
+      it "Fails to parse phylogeny with missing opening paren" do
+        parseNewick ");" `shouldSatisfy` isLeft
 
       it "Parses a single node" do
         parseNewick "A;" `expectNames` [ ("A" /\ 0.0) ]
 
-      it "Parses a singleton sexpr" do
+      it "Parses a singleton phylogeny" do
         parseNewick "(A);"
           `expectNames`
             [ ("" /\ 0.0), ("A" /\ 0.0) ]
@@ -27,7 +41,7 @@ specs = do
           `expectNames`
             [ ("" /\ 0.0), ("World" /\ 0.0), ("Hello" /\ 0.0) ]
 
-      it "Parses a sexpr with spaces" do
+      it "Parses a phylogeny with spaces" do
         parseNewick "( A, B ,  C );"
           `expectNames`
             [ ("" /\ 0.0), ("C" /\ 0.0), ("B" /\ 0.0), ("A" /\ 0.0) ]
@@ -67,6 +81,9 @@ specs = do
         parseNewick "(:1.0,(:1.5):0.9):5.6;"
           `expectNames`
             [ ("" /\ 5.6), ("" /\ 0.9), ("" /\ 1.5), ("" /\ 1.0) ]
+
+      it "Parses branch lengths in scientific notation" do
+        parseNewick "A:-1.5e-1;" `expectNames` [ ("A" /\ -0.15) ]
 
   describe "Parse Newick wikipedia examples"
     do
@@ -112,16 +129,20 @@ specs = do
     it "Parses tree with MrBayes comments" do
       parseNewick "(8[&prob=1.0]:2.94e-1[&length_mean=2.9e-1])[&prob=1.0][&length_mean=0];"
         `expectNames`
-          [ ("8" /\ 0.294)
-          , ("" /\ 0.0)
+          [ ("" /\ 0.0)
+          , ("8" /\ 0.294)
           ]
 
     it "Parses a tree with [] comments" do
-      parseNewick "(Archaea:0.43325[100]):0.88776);"
+      parseNewick "(Archaea:0.43325[100]):0.88776;"
         `expectNames`
-          [ ("Archaea" /\ 0.43325)
-          , ("" /\ 0.88776)
+          [ ("" /\ 0.88776)
+          , ("Archaea" /\ 0.43325)
           ]
+
+    it "Fails to parse a tree with non-closed comment" do
+      parseNewick "(Archaea:0.43325[100):0.88776;"
+        `shouldSatisfy` isLeft
 
   describe "Parse Extended Newick networks"
     do
@@ -161,3 +182,4 @@ specs = do
         parseNewick "(((ADH2:0.1[&&NHX:S=human:E=1.1.1.1], ADH1:0.11[&&NHX:S=human:E=1.1.1.1]):0.05[&&NHX:S=Primates:E=1.1.1.1:D=Y:B=100], ADHY:0.1[&&NHX:S=nematode:E=1.1.1.1],ADHX:0.12[&&NHX:S=insect:E=1.1.1.1]):0.1[&&NHX:S=Metazoa:E=1.1.1.1:D=N], (ADH4:0.09[&&NHX:S=yeast:E=1.1.1.1],ADH3:0.13[&&NHX:S=yeast:E=1.1.1.1], ADH2:0.12[&&NHX:S=yeast:E=1.1.1.1],ADH1:0.11[&&NHX:S=yeast:E=1.1.1.1]):0.1 [&&NHX:S=Fungi])[&&NHX:E=1.1.1.1:D=N];"
           `expectNNodes`
             12
+

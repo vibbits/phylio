@@ -1,14 +1,14 @@
-var buildSync = require("esbuild").buildSync;
-var Generator = require("npm-dts").Generator;
+import { buildSync } from "esbuild";
+import npmDts from "npm-dts";
 
-var dependencies = require("./package.json").dependencies;
+import pkg from "./package.json" assert { type: "json" };
 
 var shared = {
   entryPoints: ["js/main.ts"],
   bundle: true,
   minify: false,
   platform: "neutral",
-  external: dependencies ? Object.keys(dependencies) : [],
+  external: pkg.dependencies ? Object.keys(pkg.dependencies) : [],
 };
 
 buildSync({
@@ -16,7 +16,7 @@ buildSync({
   outfile: "dist/index.js",
 });
 
-new Generator({
+new npmDts.Generator({
   entry: "src/main.ts",
   output: "dist/index.d.ts",
 }).generate();

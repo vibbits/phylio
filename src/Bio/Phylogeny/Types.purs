@@ -11,7 +11,6 @@ import Data.Enum (succ)
 import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault)
 import Data.Graph (Graph, fromMap, outEdges, topologicalSort, vertices)
 import Data.Identity (Identity)
-import Data.Interpolate (i)
 import Data.List (List(Nil))
 import Data.List as L
 import Data.Map as M
@@ -148,7 +147,17 @@ parseAttribute attr =
 
 instance showPNode :: Show PNode where
   show (PNode { name, node, branchLength, ref, attributes }) =
-    i "PNode{name=" name ", type=" (nodeTypeToString node) ", BL=" (show branchLength) ", #" (show ref) ", attrs=" (show attributes) "}"
+    ( "PNode{name=" <> name
+        <> ", type="
+        <> (nodeTypeToString node)
+        <> ", BL="
+        <> (show branchLength)
+        <> ", #"
+        <> (show ref)
+        <> ", attrs="
+        <> (show attributes)
+        <> "}"
+    )
 
 instance showGraph :: Show Network where
   show (Network g) = show $ A.fromFoldable $ topologicalSort g
