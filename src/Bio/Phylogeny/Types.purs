@@ -4,8 +4,9 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.State (State, evalState, get, modify)
-import Data.Array ((:))
+import Data.Array ((:), intercalate)
 import Data.Array as A
+import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either(Right))
 import Data.Enum (succ)
 import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault)
@@ -29,6 +30,8 @@ data Attribute
   = Numeric Number
   | Text String
   | Bool Boolean
+  | List (Array Attribute)
+  | Mapping (M.Map String Attribute)
 
 derive instance eqAttribute :: Eq Attribute
 
@@ -117,14 +120,18 @@ instance monoidPartialPhylogeny :: Monoid PartialPhylogeny where
       }
 
 instance showAttribute :: Show Attribute where
-  show (Numeric n) = show n
-  show (Text s) = s
-  show (Bool b) = show b
+  show (Numeric n) = "Numeric: " <> show n
+  show (Text s) = "Text: " <> s
+  show (Bool b) = "Bool: " <> show b
+  show (List as) = "List: " <> (show as)
+  show (Mapping m) = "Mapping: {" <> (intercalate ", " ((\(k /\ v) -> (show k) <> ": " <> (show v)) <$> M.toUnfoldable m)) <> "}"
 
 attributeToString :: Attribute -> String
 attributeToString (Text s) = s
 attributeToString (Bool b) = show b
 attributeToString (Numeric n) = NF.toString n
+attributeToString (List as) = show as
+attributeToString (Mapping m) = show m
 
 attributeToBool :: Attribute -> Maybe Boolean
 attributeToBool (Bool b) = Just b
@@ -166,44 +173,33 @@ instance showGraph :: Show Network where
 data Tree a
   = Leaf a
   | Internal a (Array (Tree a))
-  | Empty (M.Map String Attribute)
 
 derive instance eqTree :: Eq a => Eq (Tree a)
 
 instance functorTree :: Functor Tree where
   map f (Leaf n) = Leaf (f n)
   map f (Internal p cs) = Internal (f p) (map (map f) cs)
-  map _ (Empty x) = Empty x
 
 instance semigroupTree :: Semigroup (Tree a) where
-  append (Empty x) (Empty y) = Empty (M.union x y)
-  append (Empty _) n = n
   append (Leaf l) c = Internal l [ c ]
   append (Internal n cs) c = Internal n (c : cs)
-
-instance monoidTree :: Monoid (Tree a) where
-  mempty = Empty M.empty
 
 -- | Pre-order tree traversal
 instance foldableTree :: Foldable Tree where
   foldl f acc (Leaf n) = f acc n
   foldl f acc (Internal p cs) = foldl (foldl f) (f acc p) cs
-  foldl _ acc (Empty _) = acc
   foldMap f (Leaf n) = f n
   foldMap f (Internal p cs) = f p <> foldMap (foldMap f) cs
-  foldMap _ (Empty _) = mempty
   foldr f = foldrDefault f
 
 instance traversableTree :: Traversable Tree where
   traverse action (Leaf n) = Leaf <$> action n
   traverse action (Internal p cs) = Internal <$> action p <*> traverse (traverse action) cs
-  traverse _ (Empty x) = pure (Empty x)
   sequence = sequenceDefault
 
 instance showTree :: Show a => Show (Tree a) where
   show (Leaf n) = "Leaf(" <> show n <> ")"
   show (Internal p cs) = "Internal(" <> show p <> ", " <> show cs <> ")"
-  show (Empty x) = "Empty(" <> show x <> ")"
 
 type Parser a = ParserT String Identity a
 
@@ -225,8 +221,7 @@ interpretIntermediate refOffset tree =
   let
     ancestor :: Tree PNode -> Maybe PNode
     ancestor (Leaf l) = Just l
-    ancestor (Internal p _) = Just p
-    ancestor (Empty _) = Nothing
+    ancestor (Internal p _) = Just p --TODO: This doesn't need to be a Maybe?
 
     startRef :: Int
     startRef = fromMaybe refOffset $ (_ + 1) <$> maxRef tree
@@ -249,7 +244,6 @@ interpretIntermediate refOffset tree =
     tagged = evalState (traverse assignRef tree) startRef
 
     children :: Tree PNode -> M.Map Int (List Int)
-    children (Empty _) = M.empty
     children (Leaf (PNode { ref })) =
       case ref of
         Just r -> M.singleton r Nil

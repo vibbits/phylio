@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd">
+  <phylogeny rooted="true">
+    <clade>
+      <name>Test_attr_tag</name>
+      <empty/>
+      <textAttr textA="test 1" textB="test 2" />
+      <textAttr>
+        <textA>test</textA>
+        <textB>another</textB>
+      </textAttr>
+      <numericAttr num="123"/>
+      <numericAttr>
+        <num>123</num>
+      </numericAttr>
+      <first>
+        <second x="5">
+          <third>
+            <fourth>1</fourth>
+          </third>
+        </second>
+      </first>
+    </clade>
+  </phylogeny>
+</phyloxml>

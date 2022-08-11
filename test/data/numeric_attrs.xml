@@ -1,0 +1,15 @@
+<phyloxml xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.10/phyloxml.xsd">
+  <phylogeny rooted="true">
+    <clade>
+      <name>Test_attr_tag</name>
+      <textAttr text="test 1" />
+      <textAttr>
+        <text>test2</text>
+      </textAttr>
+      <numericAttr num="123"/>
+      <numericAttr>
+        <num>123</num>
+      </numericAttr>
+    </clade>
+  </phylogeny>
+</phyloxml>

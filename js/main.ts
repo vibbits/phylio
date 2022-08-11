@@ -33,7 +33,8 @@ export type NodeType =
 type NumericAttr = { tag: "numeric"; value: number };
 type TextAttr = { tag: "text"; value: string };
 type BoolAttr = { tag: "bool"; value: boolean };
-type Attribute = NumericAttr | TextAttr | BoolAttr;
+type ListAttr = { tag: "list"; value: Array<Attribute> };
+type Attribute = NumericAttr | TextAttr | BoolAttr | ListAttr;
 
 export interface Taxa {
   name: string;
@@ -43,10 +44,9 @@ export interface Taxa {
   attributes: Map<string, Attribute>;
 }
 
-const reportError =
-  (text: string) =>
-  (err: unknown): string =>
-    Internal.reportError(err)(text);
+const reportError = (text: string) => (err: unknown) => {
+  throw new Error(Internal.reportError(err)(text));
+};
 
 export const parseNewick = (text: string): Phylogeny | string =>
   either(reportError(text))((x: Phylogeny) => x)(Internal.parseNewick(text));
@@ -63,6 +63,8 @@ const attrsToMap = (attrs: unknown): Map<string, Attribute> => {
     numeric: (key: string) => (val: number) =>
       [key, { tag: "numeric", value: val }],
     bool: (key: string) => (val: boolean) => [key, { tag: "bool", value: val }],
+    list: (key: string) => (val: Array<unknown>) =>
+      [key, { tag: "list", value: val }],
   };
   return Internal.attrsToForeign(convert)(
     (acc: Map<string, Attribute>) =>
