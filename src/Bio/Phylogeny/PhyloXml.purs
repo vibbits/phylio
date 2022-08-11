@@ -2,38 +2,26 @@ module Bio.Phylogeny.PhyloXml where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Types
-  ( Attribute(..)
-  , NodeType(..)
-  , PNode(..)
-  , Parser
-  , PartialPhylogeny(..)
-  , Phylogeny
-  , Tree(..)
-  , Metadata
-  , attributeToBool
-  , attributeToString
-  , interpretIntermediate
-  , parseAttribute
-  , toAnnotatedPhylogeny
-  )
+import Bio.Phylogeny.Types (Attribute(..), Metadata, NodeType(..), PNode(..), Parser, PartialPhylogeny(..), Phylogeny, Tree(..), attributeToBool, attributeToString, interpretIntermediate, parseAttribute, toAnnotatedPhylogeny)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as A
+import Data.Array.NonEmpty as NA
 import Data.Either (Either(..))
 import Data.Filterable (filter, partitionMap)
 import Data.Foldable (foldl)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Newtype (class Newtype, over, un)
+import Data.Newtype (class Newtype, un)
 import Data.Number as Number
 import Data.String as S
 import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
+import Debug (traceM)
 import Parsing (fail, runParser, ParseError)
-import Parsing.Combinators (between, choice, many1, optional, sepBy, try)
+import Parsing.Combinators (between, choice, many1, optional, sepEndBy, try)
 import Parsing.String (char, string)
 import Parsing.String.Basic (oneOf, skipSpaces)
 import Parsing.Token (alphaNum, space)
@@ -113,7 +101,6 @@ convert (Internal (XmlNode { name }) chs) =
       _ -> Left "Not PhyloXML data: no top-level phyloxml tag"
 convert (Leaf _) =
   Left "No trees in this PhyloXML document"
-convert (Empty _) = Left "TODO: Remove the Empty ctor"
 
 convert' :: Tree XmlNode -> Either String { meta :: Maybe Metadata, trees :: Array (Tree PNode) }
 convert' (Internal (XmlNode xml) children) =
@@ -140,7 +127,6 @@ convert' (Internal (XmlNode xml) children) =
       _ -> Left $ xml.name <> " is not a known phyloXML tree node"
 convert' (Leaf (XmlNode xml)) =
   Right { meta: Nothing, trees: [ Leaf $ pnode Taxa xml.attributes ] }
-convert' (Empty _) = Left "TODO: Remove the Empty constructor" -- TODO:
 
 tagNameChar :: Parser Char
 tagNameChar = choice [ alphaNum, oneOf [ '.', '-', '_', ':' ] ]
@@ -298,7 +284,7 @@ attribute = do
     _ -> pure (key /\ parseAttribute val)
 
 attributes :: Parser (M.Map String Attribute)
-attributes = M.fromFoldable <$> attribute `sepBy` (many1 space)
+attributes = M.fromFoldable <$> attribute `sepEndBy` (many1 space)
 
 open :: Parser (Tuple String (M.Map String Attribute))
 open = do
@@ -360,7 +346,7 @@ phyloxml :: Parser (Tree XmlNode)
 phyloxml = do
   optional header
   tree <- fix element
-  pure $ mergeAttributes tree
+  pure $ toStructuralTree tree --mergeAttributes tree
 
 fromTextAttribute :: String -> M.Map String Attribute -> String
 fromTextAttribute key attrs =
@@ -374,9 +360,82 @@ fromNumericAttribute key attrs =
     Just (Numeric val) -> val
     _ -> 0.0
 
+toStructuralTree :: Tree XmlNode -> Tree XmlNode
+toStructuralTree leaf@(Leaf _) = leaf
+toStructuralTree (Internal (XmlNode node) children) =
+  if A.null structuralElements.yes then
+    Leaf (collapseNode structuralElements.no)
+  else
+    Internal (collapseNode structuralElements.no) $ toStructuralTree <$> structuralElements.yes
+  where
+  structuralElements
+    :: { no :: Array (Tree XmlNode)
+       , yes :: Array (Tree XmlNode)
+       }
+  structuralElements = A.partition isStructuralElement children
+
+  -- Structural elements form the phylogeny,
+  -- all other elements are attributes.
+  isStructuralElement :: Tree XmlNode -> Boolean
+  isStructuralElement (Leaf _) = false
+  isStructuralElement (Internal (XmlNode { name }) _) =
+    A.elem name [ "phyloxml", "phylogeny", "clade" ]
+
+  -- `node` _is_ a structural element. children _are not_ all the way down.
+  collapseNode :: Array (Tree XmlNode) -> XmlNode
+  collapseNode chs =
+    XmlNode
+      { name: node.name
+      , value: node.value
+      , attributes: M.union node.attributes
+          $ M.fromFoldable
+              ( mkMapping <$> A.groupAllBy (comparing nodeName) chs
+              )
+      -- $ A.catMaybes
+      --     ( ( \attrs -> case collapseAttrs attrs of
+      --           Nothing -> Nothing
+      --           Just attr -> Just ((collapseName attrs) /\ attr)
+      --       )
+      --         <$> A.groupAllBy (comparing nodeName) chs
+      --     )
+      }
+
+  nodeName :: Tree XmlNode -> String
+  nodeName (Leaf (XmlNode n)) = n.name
+  nodeName (Internal (XmlNode n) _) = n.name
+
+  collapseName :: NA.NonEmptyArray (Tree XmlNode) -> String
+  collapseName = nodeName <<< NA.head
+
+  collapseAttrs :: Array (Tree XmlNode) -> Attribute
+  collapseAttrs cs =
+    case cs of
+      [ single ] ->
+        collapseAttr single
+      _ ->
+        List (collapseAttr <$> cs)
+
+  collapseAttr :: Tree XmlNode -> Attribute
+  collapseAttr (Leaf (XmlNode n)) =
+    case n.value of
+      Nothing ->
+        Mapping n.attributes
+      Just val ->
+        parseAttribute val
+
+  collapseAttr (Internal (XmlNode n) cs) =
+    Mapping
+      $ M.union n.attributes
+      $ M.fromFoldable
+          ( mkMapping <$> A.groupAllBy (comparing nodeName) cs
+          )
+
+  mkMapping :: NA.NonEmptyArray (Tree XmlNode) -> Tuple String Attribute
+  mkMapping attrs =
+    (collapseName attrs /\ (collapseAttrs $ NA.toArray attrs))
+
 mergeAttributes :: Tree XmlNode -> Tree XmlNode
 mergeAttributes leaf@(Leaf _) = leaf
-mergeAttributes e@(Empty _) = e
 mergeAttributes (Internal node children) =
   if A.null mergedChildren then
     Leaf mergedNode
@@ -391,12 +450,9 @@ mergeAttributes (Internal node children) =
 
   isTreeElement :: Tree XmlNode -> Boolean
   isTreeElement (Leaf _) = false
-  isTreeElement (Empty _) = false
   isTreeElement (Internal (XmlNode { name }) _) = A.elem name [ "phyloxml", "phylogeny", "clade" ]
 
   mergeNode :: XmlNode -> Tree XmlNode -> XmlNode
-  mergeNode acc (Empty attrs) =
-    over XmlNode (\node' -> node' { attributes = M.union node'.attributes attrs }) acc
   mergeNode (XmlNode acc) (Leaf (XmlNode node')) =
     let
       prefixed = (un XmlNode $ prefixAttrs node'.name $ XmlNode node').attributes

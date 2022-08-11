@@ -99,25 +99,12 @@ in  upstream
 -------------------------------
 -}
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.4/packages.dhall
-        sha256:a6d66723b6109f1e3eaf6575910f1c51aa545965ce313024ba329360e2f009ac
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20220805/packages.dhall
+        sha256:c80e241af3ba62fc42284b9bc26b4c9bd4525eebe4ab0e9198c9bbeac102f656
 
 in  upstream
-  with parsing =
-    { dependencies =
-      [ "arrays"
-      , "either"
-      , "foldable-traversable"
-      , "identity"
-      , "integers"
-      , "lists"
-      , "maybe"
-      , "nullable"
-      , "prelude"
-      , "strings"
-      , "transformers"
-      , "unicode"
-      ]
-    , repo = "https://github.com/purescript-contrib/purescript-parsing.git"
-    , version = "v10.0.0"
+  with graphs =
+    { dependencies = [ "catenable-lists", "ordered-collections" ]
+    , repo = "https://github.com/purescript/purescript-graphs.git"
+    , version = "v8.1.0"
     }

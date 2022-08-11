@@ -1,0 +1,11 @@
+<phyloxml>
+  <phylogeny rooted="true">
+    <clade>
+      <branch_length>0.4534</branch_length>
+      <name>25_BRAFL</name>
+      <taxonomy>
+        <code>BRAFL</code>
+      </taxonomy>
+    </clade>
+  </phylogeny>
+</phyloxml>
