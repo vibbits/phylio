@@ -10,7 +10,7 @@
   "scripts": {
     "build": "spago build --purs-args '--codegen corefn' && zephyr -f -e Bio.Phylogeny && node ./build.js",
     "build-debug": "spago build && node ./build-debug.js",
-    "test": "spago test && npm run test-js",
+    "test": "spago -x test.dhall test && npm run test-js",
     "test-js": "ava",
     "lint": "tsc --noEmit && eslint 'js/**/*.ts'"
   },
