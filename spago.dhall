@@ -12,14 +12,10 @@ to generate this file without the comments in this block.
 -}
 { name = "phylio"
 , dependencies =
-  [ "aff"
-  , "arrays"
-  , "console"
+  [ "arrays"
   , "control"
-  , "effect"
   , "either"
   , "enums"
-  , "exceptions"
   , "filterable"
   , "foldable-traversable"
   , "foreign"
@@ -29,19 +25,15 @@ to generate this file without the comments in this block.
   , "lists"
   , "maybe"
   , "newtype"
-  , "node-buffer"
-  , "node-fs-aff"
-  , "node-path"
   , "numbers"
   , "ordered-collections"
   , "parsing"
   , "prelude"
-  , "spec"
   , "strings"
   , "stringutils"
   , "transformers"
   , "tuples"
   ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+, sources = [ "src/**/*.purs" ]
 }
