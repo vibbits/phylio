@@ -20,10 +20,19 @@ import Prelude
 import Bio.Phylogeny.Newick (parseNewick) as Internal
 import Bio.Phylogeny.Nexus (parseNexus) as Internal
 import Bio.Phylogeny.PhyloXml (parsePhyloXml) as Internal
-import Bio.Phylogeny.Types (Attribute(..), Network(..), NodeIdentifier, NodeType, PNode(..), PNodeInternal, Phylogeny, getRef, nodeTypeToString) as Internal
+import Bio.Phylogeny.Types
+  ( Attribute(..)
+  , Network(..)
+  , NodeIdentifier
+  , NodeType
+  , PNode(..)
+  , PNodeInternal
+  , Phylogeny
+  , getRef
+  , nodeTypeToString
+  ) as Internal
 import Data.Array ((!!))
 import Data.Array as A
-import Data.Array.NonEmpty (toArray)
 import Data.Either (Either)
 import Data.Filterable (filterMap)
 import Data.Foldable (foldl)
