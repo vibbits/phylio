@@ -2,7 +2,7 @@ module Test.Compare where
 
 import Prelude
 
-import Bio.Phylogeny (parsePhyloXml, parseNewick)
+import Bio.Phylogeny (parseNewick, parsePhyloXml)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (readTextFile)
 import Test.Path ((</>), testDir)

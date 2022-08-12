@@ -6,7 +6,6 @@ import Control.Alt ((<|>))
 import Control.Monad.State (State, evalState, get, modify)
 import Data.Array ((:), intercalate)
 import Data.Array as A
-import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either(Right))
 import Data.Enum (succ)
 import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault)
@@ -18,7 +17,6 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Newtype (class Newtype)
 import Data.Number as N
-import Data.Number.Format as NF
 import Data.String.Regex as RE
 import Data.String.Regex.Flags (noFlags)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
@@ -126,12 +124,9 @@ instance showAttribute :: Show Attribute where
   show (List as) = "List: " <> (show as)
   show (Mapping m) = "Mapping: {" <> (intercalate ", " ((\(k /\ v) -> (show k) <> ": " <> (show v)) <$> M.toUnfoldable m)) <> "}"
 
-attributeToString :: Attribute -> String
-attributeToString (Text s) = s
-attributeToString (Bool b) = show b
-attributeToString (Numeric n) = NF.toString n
-attributeToString (List as) = show as
-attributeToString (Mapping m) = show m
+attributeToString :: Attribute -> Maybe String
+attributeToString (Text s) = Just s
+attributeToString _ = Nothing
 
 attributeToBool :: Attribute -> Maybe Boolean
 attributeToBool (Bool b) = Just b

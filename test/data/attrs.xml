@@ -8,9 +8,10 @@
       <textAttr>
         <textA>test</textA>
         <textB>another</textB>
+        <!--This is a test comment-->
       </textAttr>
       <numericAttr num="123"/>
-      <numericAttr>
+      <numericAttr num="123">  <!-- duplicated attribute should only appear once -->
         <num>123</num>
       </numericAttr>
       <first>
@@ -22,4 +23,10 @@
       </first>
     </clade>
   </phylogeny>
+  <!--
+This is a
+  multi-
+     line
+test comment
+  -->
 </phyloxml>
