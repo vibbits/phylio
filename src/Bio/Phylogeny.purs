@@ -76,7 +76,7 @@ attrsToForeign
   -> Foreign
   -> Map String Internal.Attribute
   -> Foreign
-attrsToForeign { text, numeric, bool, list, mapping } f init attrs =
+attrsToForeign x@{ text, numeric, bool, list, mapping } f init attrs =
   foldrWithIndex gen init attrs
   where
   gen :: String -> Internal.Attribute -> Foreign -> Foreign

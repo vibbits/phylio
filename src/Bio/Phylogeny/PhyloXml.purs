@@ -391,6 +391,7 @@ fromNumericAttribute key attrs =
     Just (Numeric val) -> val
     _ -> 0.0
 
+-- TODO: This feels like it could/should be a fold
 toStructuralTree :: Tree XmlNode -> Tree XmlNode
 toStructuralTree leaf@(Leaf _) = leaf
 toStructuralTree (Internal p@(XmlNode node) children) =
