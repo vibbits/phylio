@@ -34,7 +34,8 @@ type NumericAttr = { tag: "numeric"; value: number };
 type TextAttr = { tag: "text"; value: string };
 type BoolAttr = { tag: "bool"; value: boolean };
 type ListAttr = { tag: "list"; value: Array<Attribute> };
-type Attribute = NumericAttr | TextAttr | BoolAttr | ListAttr;
+type MapAttr = { tag: "mapping"; value: Map<string, Attribute> };
+type Attribute = NumericAttr | TextAttr | BoolAttr | ListAttr | MapAttr;
 
 export interface Taxa {
   name: string;
@@ -65,6 +66,8 @@ const attrsToMap = (attrs: unknown): Map<string, Attribute> => {
     bool: (key: string) => (val: boolean) => [key, { tag: "bool", value: val }],
     list: (key: string) => (val: Array<unknown>) =>
       [key, { tag: "list", value: val }],
+    mapping: (key: string) => (val: unknown) =>
+      [key, { tag: "mapping", value: val }],
   };
   return Internal.attrsToForeign(convert)(
     (acc: Map<string, Attribute>) =>
