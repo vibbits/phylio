@@ -33,7 +33,8 @@ attrToForeign (Text t) = text t
 attrToForeign (Numeric n) = numeric n
 attrToForeign (Bool b) = bool b
 attrToForeign (List as) = list $ attrToForeign <$> as
-attrToForeign (Mapping m) = mapping ((\(k /\ v) -> mkPair k $ attrToForeign v) <$> toUnfoldableUnordered m)
+attrToForeign (Mapping m) = mapping
+  ((\(k /\ v) -> mkPair k $ attrToForeign v) <$> toUnfoldableUnordered m)
 
 -- Convert an attribute map into a javascript Map
 attrsToMap :: Map String Attribute -> Foreign

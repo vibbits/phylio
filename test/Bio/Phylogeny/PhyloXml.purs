@@ -11,7 +11,7 @@ import Data.Tuple.Nested ((/\))
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (readTextFile)
 import Test.Bio.Phylogeny.Expect (expectFail, expectNames, nodeName)
-import Test.Path ((</>), testDir)
+import Test.Path (testDir, (</>))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 

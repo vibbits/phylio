@@ -17,7 +17,8 @@ specs = do
       expectFail "No valid phylogenies" $ parseNexus "#NEXUS"
 
     it "Parses 2 empty non-tree blocks" do
-      expectFail "No valid phylogenies" $ parseNexus "#NEXUS\nBegin test;\n\nEND;\nBEGIN test;\n\nEND;"
+      expectFail "No valid phylogenies" $ parseNexus
+        "#NEXUS\nBegin test;\n\nEND;\nBEGIN test;\n\nEND;"
 
     it "Parses wikipedia example" do
       text <- readTextFile UTF8 $ "test" <> sep <> "data" <> sep <> "wiki.nex"

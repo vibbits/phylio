@@ -5,7 +5,7 @@ import Prelude
 import Bio.Phylogeny (parseNewick, parsePhyloXml)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (readTextFile)
-import Test.Path ((</>), testDir)
+import Test.Path (testDir, (</>))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 

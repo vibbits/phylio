@@ -2,11 +2,11 @@ module Test.Bio.Phylogeny.Expect where
 
 import Prelude
 
+import Bio.Phylogeny (Phylogeny(..))
 import Bio.Phylogeny.Types
   ( NodeIdentifier
   , PhylogenyNode(..)
   )
-import Bio.Phylogeny (Phylogeny(..))
 import Control.Monad.Error.Class (class MonadThrow)
 import Data.Array (fromFoldable)
 import Data.Either (Either(..))
@@ -37,7 +37,12 @@ expectNNodes input n =
     `shouldEqual`
       Right n
 
-expectNames :: forall m. MonadThrow Error m => Either ParseError Phylogeny -> Array (Tuple String Number) -> m Unit
+expectNames
+  :: forall m
+   . MonadThrow Error m
+  => Either ParseError Phylogeny
+  -> Array (Tuple String Number)
+  -> m Unit
 expectNames input names =
   (nameNodes <$> input)
     `shouldEqual`

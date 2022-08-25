@@ -20,9 +20,9 @@ import Bio.Phylogeny.Internal.Nexus (parseNexus) as Internal
 import Bio.Phylogeny.Internal.PhyloXml (parsePhyloXml) as Internal
 import Bio.Phylogeny.Internal.Types
   ( Attribute
+  , NodeIdentifier
   , Phylogeny
   , PhylogenyNode(..)
-  , NodeIdentifier
   ) as Internal
 import Data.Array ((!!))
 import Data.Array as A
@@ -35,7 +35,7 @@ import Data.String.Utils (lines, repeat)
 import Data.Traversable (intercalate)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Parsing (Position(..), ParseError(..))
+import Parsing (ParseError(..), Position(..))
 
 type Taxa = Internal.PhylogenyNode
 
