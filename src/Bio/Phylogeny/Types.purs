@@ -4,18 +4,17 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.State (State, evalState, get, modify)
-import Data.Array ((:), intercalate)
+import Data.Array ((:))
 import Data.Array as A
 import Data.Either (Either(Right))
 import Data.Enum (succ)
 import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault)
-import Data.Graph (Graph, fromMap, outEdges, topologicalSort, vertices)
+import Data.Graph (Graph, fromMap)
 import Data.Identity (Identity)
 import Data.List (List(Nil))
 import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe, isJust)
-import Data.Newtype (class Newtype)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number as N
 import Data.String.Regex as RE
 import Data.String.Regex.Flags (noFlags)
@@ -33,55 +32,71 @@ data Attribute
 
 derive instance eqAttribute :: Eq Attribute
 
-data NodeType
+instance showAttribute :: Show Attribute where
+  show (Numeric n) = show n
+  show (Text t) = t
+  show (Bool b) = show b
+  show (List l) = show l
+  show (Mapping m) = show m
+
+data Event
   = Clade
   | Taxa
   | Hybrid
   | LateralGeneTransfer
   | Recombination
 
-derive instance eqNodeType :: Eq NodeType
+derive instance eqNodeType :: Eq Event
 
-nodeTypeToString :: NodeType -> String
-nodeTypeToString Clade = "Clade"
-nodeTypeToString Taxa = "Taxa"
-nodeTypeToString Hybrid = "Hybrid"
-nodeTypeToString LateralGeneTransfer = "LateralGeneTransfer"
-nodeTypeToString Recombination = "Recombination"
+eventToString :: Event -> String
+eventToString Clade = "Clade"
+eventToString Taxa = "Taxa"
+eventToString Hybrid = "Hybrid"
+eventToString LateralGeneTransfer = "LateralGeneTransfer"
+eventToString Recombination = "Recombination"
 
 type NodeName = String
 
 type NodeIdentifier = Int
 
-type PNodeInternal =
+type PartialNode =
   { name :: NodeName
-  , node :: NodeType
+  , event :: Event
   , branchLength :: Number
-  , ref :: Maybe Int
+  , ref :: Maybe NodeIdentifier
   , attributes :: M.Map String Attribute
   }
 
-newtype PNode = PNode PNodeInternal
+newtype PhylogenyNode = PhylogenyNode
+  { name :: NodeName
+  , event :: Event
+  , branchLength :: Number
+  , ref :: NodeIdentifier
+  , attributes :: M.Map String Attribute
+  }
 
-derive instance newtypePNode :: Newtype PNode _
+instance eqPhylogenyNode :: Eq PhylogenyNode where
+  eq (PhylogenyNode a) (PhylogenyNode b) =
+    a.name == b.name && a.event == b.event && a.branchLength == b.branchLength && a.attributes == b.attributes
 
-instance eqPNode :: Eq PNode where
-  eq (PNode a) (PNode b) =
-    a.name == b.name && a.node == b.node && a.branchLength == b.branchLength && a.attributes == b.attributes
-
-instance ordPNode :: Ord PNode where
-  compare (PNode a) (PNode b) =
+instance ordPhylogenyNode :: Ord PhylogenyNode where
+  compare (PhylogenyNode a) (PhylogenyNode b) =
     compare a.name b.name
 
-newtype Network = Network (Graph NodeIdentifier PNode)
+instance showPhylogenyNode :: Show PhylogenyNode where
+  show _ = "PhylogenyNode"
 
-derive instance newtypeNetwork :: Newtype Network _
+phylogenyNode :: PartialNode -> NodeIdentifier -> PhylogenyNode
+phylogenyNode partial ref =
+  PhylogenyNode
+    { name: partial.name
+    , event: partial.event
+    , branchLength: partial.branchLength
+    , ref: ref
+    , attributes: partial.attributes
+    }
 
-instance eqNetwork :: Eq Network where
-  eq (Network a) (Network b) = (vertices a == vertices b) && (edges a == edges b)
-    where
-    edges :: Graph NodeIdentifier PNode -> List (Tuple NodeIdentifier NodeIdentifier)
-    edges graph = (topologicalSort graph) >>= (\id -> (id /\ _) <$> fromMaybe Nil (outEdges id graph))
+type Network = Graph NodeIdentifier PhylogenyNode
 
 type Metadata =
   { name :: Maybe String
@@ -97,7 +112,7 @@ type Phylogeny =
 
 newtype PartialPhylogeny = PartialPhylogeny
   { metadata :: Array Metadata
-  , network :: M.Map NodeIdentifier (Tuple PNode (List NodeIdentifier))
+  , network :: M.Map NodeIdentifier (Tuple PhylogenyNode (List NodeIdentifier))
   , maxRef :: NodeIdentifier
   }
 
@@ -116,13 +131,6 @@ instance monoidPartialPhylogeny :: Monoid PartialPhylogeny where
       , network: M.empty
       , maxRef: 0
       }
-
-instance showAttribute :: Show Attribute where
-  show (Numeric n) = "Numeric: " <> show n
-  show (Text s) = "Text: " <> s
-  show (Bool b) = "Bool: " <> show b
-  show (List as) = "List: " <> (show as)
-  show (Mapping m) = "Mapping: {" <> (intercalate ", " ((\(k /\ v) -> (show k) <> ": " <> (show v)) <$> M.toUnfoldable m)) <> "}"
 
 attributeToString :: Attribute -> Maybe String
 attributeToString (Text s) = Just s
@@ -146,23 +154,6 @@ parseAttribute attr =
       "true" -> Bool true
       "false" -> Bool false
       _ -> Text attr
-
-instance showPNode :: Show PNode where
-  show (PNode { name, node, branchLength, ref, attributes }) =
-    ( "PNode{name=" <> name
-        <> ", type="
-        <> (nodeTypeToString node)
-        <> ", BL="
-        <> (show branchLength)
-        <> ", #"
-        <> (show ref)
-        <> ", attrs="
-        <> (show attributes)
-        <> "}"
-    )
-
-instance showGraph :: Show Network where
-  show (Network g) = show $ A.fromFoldable $ topologicalSort g
 
 -- This is an intermediate representation for a Network
 data Tree a
@@ -192,31 +183,24 @@ instance traversableTree :: Traversable Tree where
   traverse action (Internal p cs) = Internal <$> action p <*> traverse (traverse action) cs
   sequence = sequenceDefault
 
-instance showTree :: Show a => Show (Tree a) where
-  show (Leaf n) = "Leaf(" <> show n <> ")"
-  show (Internal p cs) = "Internal(" <> show p <> ", " <> show cs <> ")"
-
 type Parser a = ParserT String Identity a
 
-getRef :: PNode -> Maybe Int
-getRef (PNode { ref }) = ref
-
-maxRef :: Tree PNode -> Maybe Int
+maxRef :: Tree PartialNode -> Maybe Int
 maxRef =
   foldl
     ( \acc n ->
-        case getRef n of
+        case n.ref of
           Nothing -> acc
           Just b -> (max b <$> acc) <|> Just b
     )
     Nothing
 
-interpretIntermediate :: Int -> Tree PNode -> PartialPhylogeny
+interpretIntermediate :: Int -> Tree PartialNode -> PartialPhylogeny
 interpretIntermediate refOffset tree =
   let
-    ancestor :: Tree PNode -> Maybe PNode
-    ancestor (Leaf l) = Just l
-    ancestor (Internal p _) = Just p --TODO: This doesn't need to be a Maybe?
+    ancestor :: Tree PhylogenyNode -> PhylogenyNode
+    ancestor (Leaf l) = l
+    ancestor (Internal p _) = p
 
     startRef :: Int
     startRef = fromMaybe refOffset $ (_ + 1) <$> maxRef tree
@@ -227,63 +211,60 @@ interpretIntermediate refOffset tree =
       _ <- modify $ fromMaybe 0 <<< succ
       pure ref
 
-    assignRef :: PNode -> State Int PNode
-    assignRef pnode@(PNode n) =
-      if isJust n.ref then
-        pure pnode
-      else do
-        ref <- postIncrementRef
-        pure $ PNode (n { ref = Just ref })
+    assignRef :: PartialNode -> State Int PhylogenyNode
+    assignRef pnode =
+      case pnode.ref of
+        Just ref -> pure $ phylogenyNode pnode ref
+        _ -> do
+          ref <- postIncrementRef
+          pure $ phylogenyNode pnode ref
 
-    tagged :: Tree PNode
+    tagged :: Tree PhylogenyNode
     tagged = evalState (traverse assignRef tree) startRef
 
-    children :: Tree PNode -> M.Map Int (List Int)
-    children (Leaf (PNode { ref })) =
-      case ref of
-        Just r -> M.singleton r Nil
-        Nothing -> M.empty
-    children (Internal (PNode { ref }) cs) =
-      case ref of
-        Just r -> foldl
-          (\acc t -> M.unionWith (L.union) acc $ children t)
-          (M.singleton r (L.fromFoldable $ A.catMaybes $ (\t -> getRef =<< ancestor t) <$> cs))
-          cs
-        Nothing -> foldl (\acc t -> M.unionWith (L.union) acc $ children t) M.empty cs
+    getRef :: PhylogenyNode -> Int
+    getRef (PhylogenyNode n) = n.ref
 
-    children' = children tagged
+    children :: Tree PhylogenyNode -> M.Map Int (List Int)
+    children (Leaf (PhylogenyNode { ref })) = M.singleton ref Nil
+    children (Internal (PhylogenyNode { ref }) cs) =
+      foldl
+        (\acc t -> M.unionWith (L.union) acc $ children t)
+        (M.singleton ref (L.fromFoldable $ (getRef <<< ancestor) <$> cs))
+        cs
 
-    foldFn n@(PNode { ref }) graph =
-      case ref of
-        Just r -> [ (r /\ (n /\ (fromMaybe Nil $ M.lookup r children'))) ] <> graph
-        Nothing -> graph
+    foldFn
+      :: PhylogenyNode
+      -> Array (Tuple NodeIdentifier (Tuple PhylogenyNode (List Int)))
+      -> Array (Tuple NodeIdentifier (Tuple PhylogenyNode (List Int)))
+    foldFn n@(PhylogenyNode { ref }) graph =
+      [ (ref /\ (n /\ (fromMaybe Nil $ M.lookup ref $ children tagged))) ] <> graph
 
-    inMeta :: Int -> Maybe Metadata
+    inMeta :: Int -> Metadata
     inMeta parent =
-      Just
-        { name: Nothing
-        , parent: parent
-        , rooted: true
-        , description: Nothing
-        }
+      { name: Nothing
+      , parent: parent
+      , rooted: true
+      , description: Nothing
+      }
 
   in
     PartialPhylogeny
-      { metadata: A.fromFoldable (ancestor tagged >>= getRef >>= inMeta)
+      { metadata: [ inMeta $ getRef $ ancestor tagged ]
       , network: M.fromFoldable $ foldr foldFn [] tagged
-      , maxRef: fromMaybe refOffset $ maxRef tagged
+      , maxRef: foldl (\acc n -> max (getRef n) acc) 0 tagged
       }
 
 toPhylogeny :: PartialPhylogeny -> Phylogeny
 toPhylogeny (PartialPhylogeny phylogeny) =
   { metadata: phylogeny.metadata
-  , network: Network $ fromMap phylogeny.network
+  , network: fromMap phylogeny.network
   }
 
 toAnnotatedPhylogeny :: Array Metadata -> PartialPhylogeny -> Phylogeny
 toAnnotatedPhylogeny metadata (PartialPhylogeny phylogeny) =
   { metadata: uncurry mergeMetadata <$> A.zip metadata phylogeny.metadata
-  , network: Network $ fromMap phylogeny.network
+  , network: fromMap phylogeny.network
   }
   where
   mergeMetadata :: Metadata -> Metadata -> Metadata

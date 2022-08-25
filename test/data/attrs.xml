@@ -21,6 +21,7 @@
           </third>
         </second>
       </first>
+      <property applies_to="clade" datatype="xsd:anyURI" ref="See also">https://vib.be</property>
     </clade>
   </phylogeny>
   <!--

@@ -2,7 +2,7 @@ module Test.Bio.Phylogeny.PhyloXml where
 
 import Prelude
 
-import Bio.Phylogeny (attributes, parsePhyloXml, reportError, roots, vertices)
+import Bio.Phylogeny (attributes, lookupNode, parsePhyloXml, reportError, roots, vertices)
 import Bio.Phylogeny.Types (Attribute(..))
 import Data.Array as A
 import Data.Either (Either(..))
@@ -12,7 +12,7 @@ import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (readTextFile)
 import Test.Bio.Phylogeny.Expect (expectFail, expectNames, nodeName)
 import Test.Path ((</>), testDir)
-import Test.Spec (Spec, describe, it)
+import Test.Spec (Spec, describe, it, itOnly)
 import Test.Spec.Assertions (fail, shouldEqual)
 
 specs :: Spec Unit
@@ -33,7 +33,7 @@ specs = do
 
       case phylogeny of
         Right phylogeny' ->
-          (nodeName <$> roots phylogeny')
+          (nodeName <$> (A.catMaybes (lookupNode phylogeny' <$> (roots phylogeny'))))
             `shouldEqual`
               [ ("root 1" /\ 0.0)
               , ("root 2" /\ 0.0)
@@ -117,7 +117,17 @@ specs = do
                             )
                         ]
                     )
+                  , ( "property" /\ Mapping
+                        ( fromFoldable
+                            [ ("applies_to" /\ Text "clade")
+                            , ("datatype" /\ Text "xsd:anyURI")
+                            , ("ref" /\ Text "See also")
+                            , ("value" /\ Text "https://vib.be")
+                            ]
+                        )
+                    )
                   ]
               ]
 
         Left err -> fail $ reportError err text
+

@@ -4,8 +4,8 @@ import Prelude hiding (between)
 
 import Bio.Phylogeny.Types
   ( Attribute(..)
-  , NodeType(..)
-  , PNode(..)
+  , Event(..)
+  , PartialNode
   , Parser
   , Phylogeny
   , Tree(..)
@@ -37,10 +37,10 @@ parseNewick input = runParser input newickParser
 newickParser :: Parser Phylogeny
 newickParser = toPhylogeny <<< interpretIntermediate 0 <$> subTree <* char ';'
 
-subTree :: Parser (Tree PNode)
+subTree :: Parser (Tree PartialNode)
 subTree = fix $ \p -> internal p <|> leaf
 
-refp :: Parser (Tuple Int NodeType)
+refp :: Parser (Tuple Int Event)
 refp = do
   _ <- char '#'
   t <-
@@ -53,8 +53,8 @@ refp = do
     Just r -> pure (r /\ t)
     Nothing -> fail ("References must be an integer: " <> n)
 
-node :: NodeType -> Parser PNode
-node nt =
+node :: Event -> Parser PartialNode
+node event =
   let
     extras = [ '.', '_', '-' ]
   in
@@ -69,16 +69,16 @@ node nt =
       try comment <|> pure unit
       skipSpaces
       case ref of
-        Just (id /\ nodet) -> pure $ PNode
+        Just (id /\ event') -> pure
           { name: name'
-          , node: nodet
+          , event: event'
           , branchLength: len
           , attributes: attrs
           , ref: Just id
           }
-        Nothing -> pure $ PNode
+        Nothing -> pure
           { name: name'
-          , node: nt
+          , event: event
           , branchLength: len
           , attributes: attrs
           , ref: Nothing
@@ -101,10 +101,10 @@ attr = do
     Just value -> pure (key /\ Numeric value)
     Nothing -> pure (key /\ Text val)
 
-leaf :: Parser (Tree PNode)
+leaf :: Parser (Tree PartialNode)
 leaf = Leaf <$> node Taxa
 
-internal :: Parser (Tree PNode) -> Parser (Tree PNode)
+internal :: Parser (Tree PartialNode) -> Parser (Tree PartialNode)
 internal pars = do
   lst <- between (string "(") (string ")") ((skipSpaces *> pars <* skipSpaces) `sepBy` char ',')
   parent <- try $ node Clade
