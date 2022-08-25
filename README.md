@@ -1,6 +1,12 @@
 # Phylio
 Read, write, and manipulate phylogenetic trees.
 
+Supported formats are:
+
+* [PhyloXML](http://www.phyloxml.org/)
+* [Newick](https://en.wikipedia.org/wiki/Newick_format) with support for [NHX](http://www.phylosoft.org/NHX/nhx.pdf) and [Extended Newick](https://doi.org/10.1186/1471-2105-9-532)
+* [NEXUS](https://en.wikipedia.org/wiki/Nexus_file)
+
 ## Installation
 
 For javascript projects using NPM:
