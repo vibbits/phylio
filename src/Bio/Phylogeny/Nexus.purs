@@ -4,7 +4,7 @@ import Prelude hiding (between)
 
 import Bio.Phylogeny.Newick (subTree)
 import Bio.Phylogeny.Types
-  ( PNode
+  ( PartialNode
   , PartialPhylogeny(..)
   , Phylogeny
   , Tree
@@ -28,7 +28,7 @@ import Parsing.Token (digit, letter)
 
 type Parser a = ParserT String Identity a
 
-data Block = Block String (Maybe (Tree PNode))
+data Block = Block String (Maybe (Tree PartialNode))
 
 parseNexus :: String -> Either ParseError Phylogeny
 parseNexus input = runParser input nexusParser
@@ -71,7 +71,7 @@ begin = (string "BEGIN" <|> string "Begin") *> skipSpaces
 end :: Parser Unit
 end = skipSpaces <* (string "END;" <|> string "End;") *> skipSpaces
 
-tree :: Parser (Tree PNode)
+tree :: Parser (Tree PartialNode)
 tree = do
   _ <- string "Tree"
   skipSpaces

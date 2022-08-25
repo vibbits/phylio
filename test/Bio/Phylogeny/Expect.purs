@@ -3,9 +3,8 @@ module Test.Bio.Phylogeny.Expect where
 import Prelude
 
 import Bio.Phylogeny.Types
-  ( Network(..)
-  , NodeIdentifier
-  , PNode(..)
+  ( NodeIdentifier
+  , PhylogenyNode(..)
   )
 import Bio.Phylogeny (Phylogeny(..))
 import Control.Monad.Error.Class (class MonadThrow)
@@ -13,7 +12,6 @@ import Data.Array (fromFoldable)
 import Data.Either (Either(..))
 import Data.Graph (Graph, lookup, topologicalSort, vertices)
 import Data.List (catMaybes, length)
-import Data.Newtype (un)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Effect.Exception (Error)
@@ -21,11 +19,11 @@ import Parsing (ParseError(..))
 import Test.Spec.Assertions (fail, shouldEqual)
 import Test.Spec.Assertions.String (shouldContain)
 
-graph :: Phylogeny -> Graph NodeIdentifier PNode
-graph (Phylogeny phy) = un Network phy.network
+graph :: Phylogeny -> Graph NodeIdentifier PhylogenyNode
+graph (Phylogeny phy) = phy.network
 
-nodeName :: PNode -> Tuple String Number
-nodeName (PNode { name, branchLength }) = (name /\ branchLength)
+nodeName :: PhylogenyNode -> Tuple String Number
+nodeName (PhylogenyNode { name, branchLength }) = (name /\ branchLength)
 
 nameNodes :: Phylogeny -> Array (Tuple String Number)
 nameNodes phy =

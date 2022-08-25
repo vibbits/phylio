@@ -1,22 +1,8 @@
-module Bio.Phylogeny.PhyloXml where
+module Bio.Phylogeny.PhyloXml (parsePhyloXml) where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Types
-  ( Attribute(..)
-  , Metadata
-  , NodeType(..)
-  , PNode(..)
-  , Parser
-  , PartialPhylogeny(..)
-  , Phylogeny
-  , Tree(..)
-  , attributeToBool
-  , attributeToString
-  , interpretIntermediate
-  , parseAttribute
-  , toAnnotatedPhylogeny
-  )
+import Bio.Phylogeny.Types (Attribute(..), Event(..), Metadata, Parser, PartialNode, PartialPhylogeny(..), Phylogeny, Tree(..), attributeToBool, attributeToString, interpretIntermediate, parseAttribute, toAnnotatedPhylogeny)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as A
@@ -26,7 +12,6 @@ import Data.Filterable (partitionMap)
 import Data.Foldable (foldl)
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Newtype (class Newtype)
 import Data.Number as Number
 import Data.Number.Format (toString)
 import Data.String as S
@@ -46,13 +31,7 @@ newtype XmlNode = XmlNode
   , value :: Maybe String
   }
 
-derive instance newtypeXmlNode :: Newtype XmlNode _
-
 derive instance eqXmlNode :: Eq XmlNode
-
-instance showXmlNode :: Show XmlNode where
-  show (XmlNode node) =
-    "XmlNode{" <> show node <> "}"
 
 parsePhyloXml :: String -> Either ParseError Phylogeny
 parsePhyloXml input = runParser input phyloXmlParser
@@ -78,15 +57,14 @@ branchLength attrs =
     Just (Numeric len) -> Just len
     _ -> Nothing
 
-pnode :: NodeType -> M.Map String Attribute -> PNode
-pnode nt attrs =
-  PNode
-    { name: fromMaybe "" (coerceName <$> M.lookup "name" attrs)
-    , node: nt
-    , branchLength: fromMaybe 0.0 $ branchLength attrs
-    , ref: Nothing
-    , attributes: filteredAttrs
-    }
+pnode :: Event -> M.Map String Attribute -> PartialNode
+pnode event attrs =
+  { name: fromMaybe "" (coerceName <$> M.lookup "name" attrs)
+  , event: event
+  , branchLength: fromMaybe 0.0 $ branchLength attrs
+  , ref: Nothing
+  , attributes: filteredAttrs
+  }
   where
   filteredAttrs = M.filterKeys (\key -> A.notElem key [ "name", "branch_length" ]) attrs
 
@@ -105,10 +83,10 @@ metadata attrs =
   , description: M.lookup "description" attrs >>= attributeToString
   }
 
-convert :: Tree XmlNode -> Either String { meta :: Array Metadata, trees :: (Array (Tree PNode)) }
+convert :: Tree XmlNode -> Either String { meta :: Array Metadata, trees :: (Array (Tree PartialNode)) }
 convert (Internal (XmlNode { name }) chs) =
   let
-    children :: Either String (Array { meta :: Maybe Metadata, trees :: Array (Tree PNode) })
+    children :: Either String (Array { meta :: Maybe Metadata, trees :: Array (Tree PartialNode) })
     children = sequence (convert' <$> chs)
   in
     case name of
@@ -123,10 +101,10 @@ convert (Internal (XmlNode { name }) chs) =
 convert (Leaf _) =
   Left "No trees in this PhyloXML document"
 
-convert' :: Tree XmlNode -> Either String { meta :: Maybe Metadata, trees :: Array (Tree PNode) }
+convert' :: Tree XmlNode -> Either String { meta :: Maybe Metadata, trees :: Array (Tree PartialNode) }
 convert' (Internal (XmlNode xml) children) =
   let
-    convertedChildren :: Array (Tree PNode)
+    convertedChildren :: Array (Tree PartialNode)
     convertedChildren = join (_.trees <$> (partitionMap convert' children).right)
   in
     case xml.name of
@@ -379,18 +357,6 @@ phyloxml = do
   tree <- fix element
   pure $ toStructuralTree tree
 
-fromTextAttribute :: String -> M.Map String Attribute -> String
-fromTextAttribute key attrs =
-  case M.lookup key attrs of
-    Just (Text val) -> val
-    _ -> ""
-
-fromNumericAttribute :: String -> M.Map String Attribute -> Number
-fromNumericAttribute key attrs =
-  case M.lookup key attrs of
-    Just (Numeric val) -> val
-    _ -> 0.0
-
 -- TODO: This feels like it could/should be a fold
 toStructuralTree :: Tree XmlNode -> Tree XmlNode
 toStructuralTree leaf@(Leaf _) = leaf
@@ -401,10 +367,7 @@ toStructuralTree (Internal p@(XmlNode node) children) =
     Internal (collapseNode structuralElements.no)
       $ toStructuralTree <$> structuralElements.yes
   where
-  structuralElements
-    :: { no :: Array (Tree XmlNode)
-       , yes :: Array (Tree XmlNode)
-       }
+  structuralElements :: { no :: Array (Tree XmlNode), yes :: Array (Tree XmlNode) }
   structuralElements = A.partition isStructuralElement children
 
   -- Structural elements form the phylogeny,
@@ -437,7 +400,10 @@ collapseAttr (Leaf (XmlNode n)) =
     Nothing ->
       Mapping n.attributes
     Just val ->
-      parseAttribute val
+      if M.isEmpty n.attributes then
+        parseAttribute val
+      else
+        Mapping (M.union (M.singleton "value" (parseAttribute val)) n.attributes)
 
 collapseAttr (Internal parent cs) =
   Mapping $ collapseTree parent cs
