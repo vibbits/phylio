@@ -1,8 +1,22 @@
-module Bio.Phylogeny.PhyloXml (parsePhyloXml) where
+module Bio.Phylogeny.Internal.PhyloXml (parsePhyloXml) where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Types (Attribute(..), Event(..), Metadata, Parser, PartialNode, PartialPhylogeny(..), Phylogeny, Tree(..), attributeToBool, attributeToString, interpretIntermediate, parseAttribute, toAnnotatedPhylogeny)
+import Bio.Phylogeny.Internal.Types
+  ( Attribute(..)
+  , Event(..)
+  , Metadata
+  , Parser
+  , PartialNode
+  , PartialPhylogeny(..)
+  , Phylogeny
+  , Tree(..)
+  , attributeToBool
+  , attributeToString
+  , interpretIntermediate
+  , parseAttribute
+  , toAnnotatedPhylogeny
+  )
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as A

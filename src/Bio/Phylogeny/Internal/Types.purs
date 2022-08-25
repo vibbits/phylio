@@ -1,4 +1,4 @@
-module Bio.Phylogeny.Types
+module Bio.Phylogeny.Internal.Types
   ( Attribute(..)
   , Event(..)
   , eventToString

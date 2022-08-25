@@ -15,10 +15,10 @@ module Bio.Phylogeny
 
 import Prelude
 
-import Bio.Phylogeny.Newick (parseNewick) as Internal
-import Bio.Phylogeny.Nexus (parseNexus) as Internal
-import Bio.Phylogeny.PhyloXml (parsePhyloXml) as Internal
-import Bio.Phylogeny.Types
+import Bio.Phylogeny.Internal.Newick (parseNewick) as Internal
+import Bio.Phylogeny.Internal.Nexus (parseNexus) as Internal
+import Bio.Phylogeny.Internal.PhyloXml (parsePhyloXml) as Internal
+import Bio.Phylogeny.Internal.Types
   ( Attribute
   , Phylogeny
   , PhylogenyNode(..)

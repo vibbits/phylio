@@ -1,9 +1,9 @@
-module Bio.Phylogeny.Nexus (parseNexus) where
+module Bio.Phylogeny.Internal.Nexus (parseNexus) where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Newick (subTree)
-import Bio.Phylogeny.Types
+import Bio.Phylogeny.Internal.Newick (subTree)
+import Bio.Phylogeny.Internal.Types
   ( PartialNode
   , PartialPhylogeny(..)
   , Phylogeny

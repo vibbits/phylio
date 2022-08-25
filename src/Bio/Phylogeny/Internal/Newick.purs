@@ -1,8 +1,8 @@
-module Bio.Phylogeny.Newick (parseNewick, subTree) where
+module Bio.Phylogeny.Internal.Newick (parseNewick, subTree) where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Types
+import Bio.Phylogeny.Internal.Types
   ( Attribute(..)
   , Event(..)
   , PartialNode
