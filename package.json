@@ -8,12 +8,11 @@
     "test": "test"
   },
   "scripts": {
-    "build": "spago build --purs-args '--codegen corefn' && zephyr -f -e Bio.Phylogeny && node ./build.js",
-    "build-debug": "spago build && node ./build-debug.js",
-    "build-js": "spago -x javascript.dhall",
-    "test": "spago -x test.dhall test && npm run test-js",
-    "test-js": "spago -x javascript.dhall build && ava",
-    "lint": "tsc --noEmit && eslint 'js/**/*.ts'"
+    "build:debug": "spago build && node ./build-debug.js",
+    "build": "spago -x javascript.dhall build -u '-o ps_output --codegen corefn' && zephyr -f -e -i ps_output -o output Bio.Phylogeny JsLib && node ./build.js",
+    "test": "spago -x test.dhall test && npm run js:test",
+    "js:test": "spago -x javascript.dhall build && ava",
+    "lint": "tsc --noEmit && eslint 'js/**/*.ts' 'test/js/**/*.ts'"
   },
   "repository": {
     "type": "git",

@@ -6,8 +6,7 @@ node_modules
 
 # Generated files
 .psci
-output
-dce-output
+*output
 .purs-repl
 .spago
 .psc-ide-port
@@ -15,3 +14,6 @@ dist
 
 # Editor files
 *~
+
+# Environment configuration
+.envrc

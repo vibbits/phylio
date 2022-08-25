@@ -1,0 +1,13 @@
+output/*
+dce-output/*
+ps_output/*
+*~
+*.dot
+*.png
+test/*
+spec/*
+node_modules/*
+src/*
+*.js
+*.mjs
+*.cjs
