@@ -1,4 +1,4 @@
-module Bio.Phylogeny.Newick where
+module Bio.Phylogeny.Newick (parseNewick, subTree) where
 
 import Prelude hiding (between)
 

@@ -1,4 +1,24 @@
-module Bio.Phylogeny.Types where
+module Bio.Phylogeny.Types
+  ( Attribute(..)
+  , Event(..)
+  , eventToString
+  , PhylogenyNode(..)
+  , NodeIdentifier
+  , NodeName
+  , Network
+  , Metadata
+  , Phylogeny
+  , PartialPhylogeny(..)
+  , PartialNode
+  , Parser
+  , attributeToString
+  , attributeToBool
+  , parseAttribute
+  , Tree(..)
+  , interpretIntermediate
+  , toPhylogeny
+  , toAnnotatedPhylogeny
+  ) where
 
 import Prelude
 

@@ -1,4 +1,4 @@
-module Bio.Phylogeny.Nexus where
+module Bio.Phylogeny.Nexus (parseNexus) where
 
 import Prelude hiding (between)
 
