@@ -14,7 +14,7 @@ test("What attributes does PP00079G00800 have?", (t) => {
   });
   const verts = vertices(parse(text));
   const PP00079G00800 = verts.filter(
-    (v) => v.name === "PP00079G00800"
+    (v) => v.name === "PP00079G00800",
   )[0] as Taxa;
   t.deepEqual(Array.from(PP00079G00800.attributes.keys()), [
     "taxonomy",
@@ -25,7 +25,7 @@ test("What attributes does PP00079G00800 have?", (t) => {
   t.is(taxonomy?.tag, "mapping");
   t.deepEqual(
     taxonomy?.value,
-    new Map([["code", { tag: "text", value: "ppa" }]])
+    new Map([["code", { tag: "text", value: "ppa" }]]),
   );
 
   const property = PP00079G00800.attributes.get("property");
@@ -44,12 +44,12 @@ test("What attributes does PP00079G00800 have?", (t) => {
             "http://bioinformatics.psb.ugent.be/plaza/versions/plaza_v3_dicots/genes/view/PP00079G00800",
         },
       ],
-    ])
+    ]),
   );
   const sequence = PP00079G00800.attributes.get("sequence");
   t.is(sequence?.tag, "mapping");
   const domarch = (sequence?.value as Map<string, Attribute>).get(
-    "domain_architecture"
+    "domain_architecture",
   );
   t.deepEqual((domarch?.value as Map<string, Attribute>).get("length"), {
     tag: "numeric",
@@ -68,7 +68,7 @@ test("What attributes does PP00079G00800 have?", (t) => {
         ["to", { tag: "numeric", value: 540 }],
         ["value", { tag: "text", value: "IPR017932" }],
       ]),
-    }
+    },
   );
 });
 
@@ -99,7 +99,7 @@ test("Duplicated attributes", (t) => {
     new Map([
       ["textA", { tag: "text", value: "test 1" }],
       ["textB", { tag: "text", value: "test 2" }],
-    ])
+    ]),
   );
 
   t.deepEqual(
@@ -107,7 +107,7 @@ test("Duplicated attributes", (t) => {
     new Map([
       ["textA", { tag: "text", value: "test" }],
       ["textB", { tag: "text", value: "another" }],
-    ])
+    ]),
   );
 });
 
@@ -125,11 +125,11 @@ test("More duplicated attributes", (t) => {
 
   t.deepEqual(
     (numericAttr?.value as Array<Attribute>)[0]?.value,
-    new Map([["num", { tag: "numeric", value: 123 }]])
+    new Map([["num", { tag: "numeric", value: 123 }]]),
   );
 
   t.deepEqual(
     (numericAttr?.value as Array<Attribute>)[1]?.value,
-    new Map([["num", { tag: "numeric", value: 123 }]])
+    new Map([["num", { tag: "numeric", value: 123 }]]),
   );
 });

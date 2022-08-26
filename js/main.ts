@@ -60,7 +60,7 @@ export const parse = (text: string): Phylogeny => {
 };
 
 export const edges = (
-  graph: unknown
+  graph: unknown,
 ): Array<{ source: number; sink: number }> => edges_(graph);
 
 export const vertices = (graph: unknown): Array<Taxa> => vertices_(graph);

@@ -4,7 +4,10 @@ module.exports = {
     es2021: true,
     node: true,
   },
-  extends: ["eslint:recommended"],
+  extends: [
+    "eslint:recommended",
+    "prettier"
+  ],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: "latest",
@@ -12,7 +15,6 @@ module.exports = {
   },
   plugins: ["@typescript-eslint"],
   rules: {
-    semi: ["error", "always"],
     eqeqeq: ["error", "always"],
     "no-unused-vars": [
       "error",
