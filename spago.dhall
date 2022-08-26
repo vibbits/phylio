@@ -8,7 +8,6 @@
   , "foldable-traversable"
   , "graphs"
   , "identity"
-  , "integers"
   , "lists"
   , "maybe"
   , "numbers"

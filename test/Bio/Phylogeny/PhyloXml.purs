@@ -2,8 +2,15 @@ module Test.Bio.Phylogeny.PhyloXml where
 
 import Prelude
 
-import Bio.Phylogeny (attributes, lookupNode, parsePhyloXml, reportError, roots, vertices)
-import Bio.Phylogeny.Types (Attribute(..))
+import Bio.Phylogeny
+  ( Attribute(..)
+  , attributes
+  , lookupNode
+  , parsePhyloXml
+  , reportError
+  , roots
+  , vertices
+  )
 import Data.Array as A
 import Data.Either (Either(..))
 import Data.Map (empty, fromFoldable)

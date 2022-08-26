@@ -3,7 +3,7 @@ module Test.Bio.Phylogeny.Expect where
 import Prelude
 
 import Bio.Phylogeny (Phylogeny(..))
-import Bio.Phylogeny.Types
+import Bio.Phylogeny.Internal.Types
   ( NodeIdentifier
   , PhylogenyNode(..)
   )

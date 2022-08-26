@@ -3,7 +3,8 @@ module JsLib (edges, parse, vertices) where
 import Prelude
 
 import Bio.Phylogeny as Phylio
-import Bio.Phylogeny.Types (Attribute(..), PhylogenyNode(..), eventToString)
+import Bio.Phylogeny.Internal.Attributes (Attribute(..))
+import Bio.Phylogeny.Internal.Types (PhylogenyNode(..), eventToString)
 import Control.Alternative ((<|>))
 import Data.Either (Either(..))
 import Data.FoldableWithIndex (foldrWithIndex)

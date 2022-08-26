@@ -1,6 +1,5 @@
 module Bio.Phylogeny.Internal.Types
-  ( Attribute(..)
-  , Event(..)
+  ( Event(..)
   , eventToString
   , PhylogenyNode(..)
   , NodeIdentifier
@@ -11,9 +10,6 @@ module Bio.Phylogeny.Internal.Types
   , PartialPhylogeny(..)
   , PartialNode
   , Parser
-  , attributeToString
-  , attributeToBool
-  , parseAttribute
   , Tree(..)
   , interpretIntermediate
   , toPhylogeny
@@ -22,42 +18,23 @@ module Bio.Phylogeny.Internal.Types
 
 import Prelude
 
+import Bio.Phylogeny.Internal.Attributes (Attribute)
 import Control.Alt ((<|>))
 import Control.Monad.State (State, evalState, get, modify)
 import Data.Array ((:))
 import Data.Array as A
-import Data.Either (Either(Right))
 import Data.Enum (succ)
-import Data.Foldable (class Foldable, foldMap, foldr, foldl, foldrDefault)
+import Data.Foldable (class Foldable, foldMap, foldl, foldr, foldrDefault)
 import Data.Graph (Graph, fromMap)
 import Data.Identity (Identity)
 import Data.List (List(Nil))
 import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Number as N
-import Data.String.Regex as RE
-import Data.String.Regex.Flags (noFlags)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Data.Tuple (Tuple, uncurry)
 import Data.Tuple.Nested ((/\))
 import Parsing (ParserT)
-
-data Attribute
-  = Numeric Number
-  | Text String
-  | Bool Boolean
-  | List (Array Attribute)
-  | Mapping (M.Map String Attribute)
-
-derive instance eqAttribute :: Eq Attribute
-
-instance showAttribute :: Show Attribute where
-  show (Numeric n) = show n
-  show (Text t) = t
-  show (Bool b) = show b
-  show (List l) = show l
-  show (Mapping m) = show m
 
 data Event
   = Clade
@@ -97,7 +74,8 @@ newtype PhylogenyNode = PhylogenyNode
 
 instance eqPhylogenyNode :: Eq PhylogenyNode where
   eq (PhylogenyNode a) (PhylogenyNode b) =
-    a.name == b.name && a.event == b.event && a.branchLength == b.branchLength && a.attributes == b.attributes
+    a.name == b.name && a.event == b.event && a.branchLength == b.branchLength && a.attributes ==
+      b.attributes
 
 instance ordPhylogenyNode :: Ord PhylogenyNode where
   compare (PhylogenyNode a) (PhylogenyNode b) =
@@ -151,29 +129,6 @@ instance monoidPartialPhylogeny :: Monoid PartialPhylogeny where
       , network: M.empty
       , maxRef: 0
       }
-
-attributeToString :: Attribute -> Maybe String
-attributeToString (Text s) = Just s
-attributeToString _ = Nothing
-
-attributeToBool :: Attribute -> Maybe Boolean
-attributeToBool (Bool b) = Just b
-attributeToBool _ = Nothing
-
-parseAttribute :: String -> Attribute
-parseAttribute attr =
-  -- If the string contains only numeric characters try to make a number
-  -- This is because `fromString` will accept string that onlt *start* with numbers
-  -- so a value like "25_BRACA" will become `Numeric 25` otherwise
-  if (flip RE.test attr <$> RE.regex "^\\d*.?\\d*$" noFlags) == Right true then
-    case N.fromString attr of
-      Just num -> Numeric num
-      _ -> Text attr
-  else
-    case attr of
-      "true" -> Bool true
-      "false" -> Bool false
-      _ -> Text attr
 
 -- This is an intermediate representation for a Network
 data Tree a

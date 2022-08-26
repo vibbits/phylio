@@ -2,11 +2,11 @@ module Bio.Phylogeny.Internal.Newick (parseNewick, subTree) where
 
 import Prelude hiding (between)
 
+import Bio.Phylogeny.Internal.Attributes (Attribute(..))
 import Bio.Phylogeny.Internal.Types
-  ( Attribute(..)
-  , Event(..)
-  , PartialNode
+  ( Event(..)
   , Parser
+  , PartialNode
   , Phylogeny
   , Tree(..)
   , interpretIntermediate
@@ -16,7 +16,6 @@ import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as A
 import Data.Either (Either)
-import Data.Int as I
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Number as N
@@ -24,11 +23,11 @@ import Data.String (trim)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Parsing (fail, runParser, ParseError)
+import Parsing (ParseError, runParser)
 import Parsing.Combinators (between, many1, optionMaybe, sepBy, try)
 import Parsing.String (char, string)
-import Parsing.String.Basic (number, oneOf, skipSpaces)
-import Parsing.Token (alphaNum, digit, letter, space)
+import Parsing.String.Basic (intDecimal, number, oneOf, skipSpaces)
+import Parsing.Token (alphaNum, letter, space)
 
 -- | Parse phylogenies serialised to the Newick format
 parseNewick :: String -> Either ParseError Phylogeny
@@ -48,10 +47,8 @@ refp = do
       <|> (const LateralGeneTransfer <$> string "LGT")
       <|> (const Recombination <$> string "R")
       <|> pure Hybrid
-  n <- fromCharArray <<< A.fromFoldable <$> many1 digit
-  case I.fromString n of
-    Just r -> pure (r /\ t)
-    Nothing -> fail ("References must be an integer: " <> n)
+  n <- intDecimal
+  pure (n /\ t)
 
 node :: Event -> Parser PartialNode
 node event =

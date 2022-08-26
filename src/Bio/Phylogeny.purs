@@ -1,5 +1,6 @@
 module Bio.Phylogeny
-  ( Taxa
+  ( module Bio.Phylogeny.Internal.Attributes
+  , Taxa
   , Phylogeny(Phylogeny)
   , attributes
   , dot
@@ -15,12 +16,12 @@ module Bio.Phylogeny
 
 import Prelude
 
+import Bio.Phylogeny.Internal.Attributes (Attribute(..))
 import Bio.Phylogeny.Internal.Newick (parseNewick) as Internal
 import Bio.Phylogeny.Internal.Nexus (parseNexus) as Internal
 import Bio.Phylogeny.Internal.PhyloXml (parsePhyloXml) as Internal
 import Bio.Phylogeny.Internal.Types
-  ( Attribute
-  , NodeIdentifier
+  ( NodeIdentifier
   , Phylogeny
   , PhylogenyNode(..)
   ) as Internal
@@ -72,7 +73,7 @@ edges phylogeny =
 vertices :: Phylogeny -> Array Taxa
 vertices phylogeny = A.fromFoldable $ G.vertices $ graph phylogeny
 
-attributes :: Taxa -> Map String Internal.Attribute
+attributes :: Taxa -> Map String Attribute
 attributes (Internal.PhylogenyNode node) =
   node.attributes
 

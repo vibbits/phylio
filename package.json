@@ -8,12 +8,13 @@
     "test": "test"
   },
   "scripts": {
-    "build:debug": "spago build && node ./build-debug.js",
-    "build": "spago -x javascript.dhall build -u '-o ps_output --codegen corefn' && zephyr -f -e -i ps_output -o output Bio.Phylogeny JsLib && node ./build.js",
+    "build:debug": "spago -x javascript.dhall build && node ./build-debug.js",
+    "build:prod": "spago -x javascript.dhall build -u '-o ps_output' && zephyr -f -e -i ps_output -f 'corefn' Bio.Phylogeny JsLib && purs-backend-es build --int-tags --corefn-dir dce-output --output-dir output && node ./build.js",
     "test": "spago -x test.dhall test && npm run js:test",
     "js:test": "spago -x javascript.dhall build && ava",
     "lint": "tsc --noEmit && eslint 'js/**/*.ts' 'test/js/**/*.ts'",
-    "check:format": "purs-tidy check src/**/*.purs js/**/*.purs test/**/*.purs && prettier --check js/**/*.ts js/**/*.js test/js/**/*.ts"
+    "check:format": "purs-tidy check src/**/*.purs js/**/*.purs test/**/*.purs && prettier --check js/**/*.ts js/**/*.js test/js/**/*.ts",
+    "clean": "rm -rf output/ dce-output/ ps_output/ dist/"
   },
   "repository": {
     "type": "git",
@@ -53,6 +54,7 @@
     "npm-dts": "1.3.12",
     "prettier": "^2.7.1",
     "purescript": "0.15.4",
+    "purs-backend-es": "^1.0.1",
     "purs-tidy": "^0.9.1",
     "spago": "0.20.9",
     "ts-node": "10.9.1",

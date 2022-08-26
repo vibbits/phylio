@@ -2,19 +2,21 @@ module Bio.Phylogeny.Internal.PhyloXml (parsePhyloXml) where
 
 import Prelude hiding (between)
 
-import Bio.Phylogeny.Internal.Types
+import Bio.Phylogeny.Internal.Attributes
   ( Attribute(..)
-  , Event(..)
+  , attributeToBool
+  , attributeToString
+  , parseAttribute
+  )
+import Bio.Phylogeny.Internal.Types
+  ( Event(..)
   , Metadata
   , Parser
   , PartialNode
   , PartialPhylogeny(..)
   , Phylogeny
   , Tree(..)
-  , attributeToBool
-  , attributeToString
   , interpretIntermediate
-  , parseAttribute
   , toAnnotatedPhylogeny
   )
 import Control.Alt ((<|>))
@@ -33,7 +35,7 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Parsing (fail, runParser, ParseError)
+import Parsing (ParseError, fail, runParser)
 import Parsing.Combinators (between, choice, many1, optional, sepEndBy, try)
 import Parsing.String (anyTill, char, string)
 import Parsing.String.Basic (oneOf, skipSpaces)
@@ -97,7 +99,8 @@ metadata attrs =
   , description: M.lookup "description" attrs >>= attributeToString
   }
 
-convert :: Tree XmlNode -> Either String { meta :: Array Metadata, trees :: (Array (Tree PartialNode)) }
+convert
+  :: Tree XmlNode -> Either String { meta :: Array Metadata, trees :: (Array (Tree PartialNode)) }
 convert (Internal (XmlNode { name }) chs) =
   let
     children :: Either String (Array { meta :: Maybe Metadata, trees :: Array (Tree PartialNode) })
@@ -115,7 +118,8 @@ convert (Internal (XmlNode { name }) chs) =
 convert (Leaf _) =
   Left "No trees in this PhyloXML document"
 
-convert' :: Tree XmlNode -> Either String { meta :: Maybe Metadata, trees :: Array (Tree PartialNode) }
+convert'
+  :: Tree XmlNode -> Either String { meta :: Maybe Metadata, trees :: Array (Tree PartialNode) }
 convert' (Internal (XmlNode xml) children) =
   let
     convertedChildren :: Array (Tree PartialNode)
