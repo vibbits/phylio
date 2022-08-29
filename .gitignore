@@ -10,6 +10,8 @@ node_modules
 .purs-repl
 .spago
 .psc-ide-port
+bower.json
+generated-docs/
 dist
 
 # Editor files
