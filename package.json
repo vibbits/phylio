@@ -14,7 +14,7 @@
     "js:test": "spago -x javascript.dhall build && ava",
     "lint": "tsc --noEmit && eslint 'js/**/*.ts' 'test/js/**/*.ts'",
     "check:format": "purs-tidy check src/**/*.purs js/**/*.purs test/**/*.purs && prettier --check js/**/*.ts js/**/*.js test/js/**/*.ts",
-    "clean": "rm -rf output/ dce-output/ ps_output/ dist/"
+    "clean": "rm -rf output/ dce-output/ ps_output/ dist/ .pulp-cache/ .spago/ bower_components/ node_modules/"
   },
   "repository": {
     "type": "git",

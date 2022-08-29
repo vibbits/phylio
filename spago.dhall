@@ -1,4 +1,6 @@
 { name = "phylio"
+, license = "MIT"
+, repository = "https://github.com/vibbits/phylio"
 , dependencies =
   [ "arrays"
   , "control"
