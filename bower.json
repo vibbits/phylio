@@ -1,0 +1,29 @@
+{
+  "name": "purescript-phylio",
+  "license": ["MIT"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vibbits/phylio"
+  },
+  "ignore": ["**/.*", "node_modules", "bower_components", "output"],
+  "dependencies": {
+    "purescript-arrays": "^v7.0.0",
+    "purescript-control": "^v6.0.0",
+    "purescript-either": "^v6.1.0",
+    "purescript-enums": "^v6.0.0",
+    "purescript-filterable": "^v5.0.0",
+    "purescript-foldable-traversable": "^v6.0.0",
+    "purescript-graphs": "^v8.1.0",
+    "purescript-identity": "^v6.0.0",
+    "purescript-lists": "^v7.0.0",
+    "purescript-maybe": "^v6.0.0",
+    "purescript-numbers": "^v9.0.0",
+    "purescript-ordered-collections": "^v3.0.0",
+    "purescript-parsing": "^v10.0.0",
+    "purescript-prelude": "^v6.0.0",
+    "purescript-strings": "^v6.0.0",
+    "purescript-stringutils": "^v0.0.12",
+    "purescript-transformers": "^v6.0.0",
+    "purescript-tuples": "^v7.0.0"
+  }
+}
