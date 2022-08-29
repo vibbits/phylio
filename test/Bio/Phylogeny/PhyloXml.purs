@@ -56,7 +56,7 @@ specs = do
               , ("root 12" /\ 0.0)
               , ("root 13" /\ 0.0)
               ]
-        Left err -> fail $ reportError err ""
+        Left err -> fail $ reportError "" err
 
     it "Parses branch lengths in clade attributes" do
       text <- readTextFile UTF8 $ testDir </> "phyloxml_example_branch_length_attr.xml"
@@ -136,5 +136,5 @@ specs = do
                   ]
               ]
 
-        Left err -> fail $ reportError err text
+        Left err -> fail $ reportError text err
 

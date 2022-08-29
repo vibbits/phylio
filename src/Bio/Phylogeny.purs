@@ -38,10 +38,17 @@ import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
 import Parsing (ParseError(..), Position(..))
 
+-- | A node in the phylogeny graph.
 type Taxa = Internal.PhylogenyNode
 
+-- | An edge between nodes in the phylogeny graph.
+-- | The first value is the source and the second is the sink.
+-- | The `ref` for each `Taxa` is used. You can use `lookupNode` to get
+-- | a `Taxa` from a `ref`.
 type Edge = Tuple Internal.NodeIdentifier Internal.NodeIdentifier
 
+-- | A Phylogeny graph with assocuated metadata.
+-- | Multiple trees may be stored by their roots.
 newtype Phylogeny = Phylogeny Internal.Phylogeny
 
 -- Two graphs are equal if they have the same vertex set and the same set of edges.
@@ -54,12 +61,16 @@ instance showPhylogeny :: Show Phylogeny where
   show (Phylogeny phylogeny) =
     "{Phylogenies: " <> (show (fromMaybe "#" <<< _.name <$> phylogeny.metadata)) <> "}"
 
+-- | Given a `Phylogeny` get the `Graph` representation
 graph :: Phylogeny -> G.Graph Internal.NodeIdentifier Internal.PhylogenyNode
 graph (Phylogeny { network }) = network
 
+-- | Get the root for each tree in a `Phylogeny`.
 roots :: Phylogeny -> Array Internal.NodeIdentifier
 roots (Phylogeny { metadata }) = (_.parent) <$> metadata
 
+-- | Get _all_ edges in a `Phylogeny`.
+-- | Note that this includes edges for disconnected trees.
 edges :: Phylogeny -> Array Edge
 edges phylogeny =
   foldl go [] (G.edges $ graph phylogeny)
@@ -70,13 +81,17 @@ edges phylogeny =
     -> Array Edge
   go acc { end, start } = A.cons (start /\ end) acc
 
+-- | Get _all_ vertices (nodes) in a `Phylogeny`.
+-- | Note that this includes vertices from disconnected trees.
 vertices :: Phylogeny -> Array Taxa
 vertices phylogeny = A.fromFoldable $ G.vertices $ graph phylogeny
 
+-- | Get the attribute map for a given `Taxa`.
 attributes :: Taxa -> Map String Attribute
 attributes (Internal.PhylogenyNode node) =
   node.attributes
 
+-- | Given a `Phylogeny` and a `ref` (identifier) get the `Taxa` for that `ref`.
 lookupNode :: Phylogeny -> Internal.NodeIdentifier -> Maybe Internal.PhylogenyNode
 lookupNode (Phylogeny phylogeny) id =
   G.lookup id phylogeny.network
@@ -88,17 +103,30 @@ lookupEdge phylogeny (from /\ to) =
     _ -> Nothing
 
 -- Parsing
+
+-- | Parse a phylogeny serialised with the Newick format
+-- | Some variations of Newick are also supported.
 parseNewick :: String -> Either ParseError Phylogeny
 parseNewick input = Phylogeny <$> Internal.parseNewick input
 
-parsePhyloXml :: String -> Either ParseError Phylogeny
-parsePhyloXml input = Phylogeny <$> Internal.parsePhyloXml input
-
+-- | Parse a phylogeny serialised with the Nexus format
 parseNexus :: String -> Either ParseError Phylogeny
 parseNexus input = Phylogeny <$> Internal.parseNexus input
 
-reportError :: ParseError -> String -> String
-reportError (ParseError msg (Position { line, column })) input =
+-- | Parse a phylogeny serialised with the PhyloXML format
+parsePhyloXml :: String -> Either ParseError Phylogeny
+parsePhyloXml input = Phylogeny <$> Internal.parsePhyloXml input
+
+-- | When a `ParseError` occurs, you can use this function to turn
+-- | it into a helpful error message. The second argument is the
+-- | input that failed parsing.
+-- |
+-- | ```purescript run
+-- | > lmap (parseNewick ")") (reportError ")")
+-- | Left ")\n^"
+-- | ```
+reportError :: String -> ParseError -> String
+reportError input (ParseError msg (Position { line, column })) =
   "ERROR: " <> msg <> "\n" <> offender <> "\n" <> location
   where
   offender = fromMaybe "???" $ lines input !! (line - 1)
@@ -106,6 +134,9 @@ reportError (ParseError msg (Position { line, column })) input =
     Just padding -> padding <> "^"
     _ -> ""
 
+-- | Generate a GraphViz DOT representation of this phylogeny
+-- | For more information about DOT see this URL:
+-- | https://graphviz.org/doc/info/lang.html
 dot :: Phylogeny -> String
 dot phy =
   let

@@ -71,7 +71,7 @@ parse :: String -> Foreign
 parse input =
   case parsed of
     Right phylogeny -> mkSuccess phylogeny
-    Left err -> mkError $ Phylio.reportError err input
+    Left err -> mkError $ Phylio.reportError input err
   where
   parsed = Phylio.parsePhyloXml input
     <|> Phylio.parseNewick input
