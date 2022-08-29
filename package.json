@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build:debug": "spago -x javascript.dhall build && node ./build-debug.js",
-    "build:prod": "spago -x javascript.dhall build -u '-o ps_output' && zephyr -f -e -i ps_output -f 'corefn' Bio.Phylogeny JsLib && purs-backend-es build --int-tags --corefn-dir dce-output --output-dir output && node ./build.js",
+    "build:prod": "spago -x javascript.dhall build -u '-o ps_output --codegen corefn' && zephyr -f -e -i ps_output -g 'corefn' Bio.Phylogeny JsLib && purs-backend-es build --int-tags --corefn-dir dce-output --output-dir output && node ./build.js",
     "test": "spago -x test.dhall test && npm run js:test",
     "js:test": "spago -x javascript.dhall build && ava",
     "lint": "tsc --noEmit && eslint 'js/**/*.ts' 'test/js/**/*.ts'",
