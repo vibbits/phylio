@@ -104,7 +104,7 @@ lookupEdge phylogeny (from /\ to) =
 
 -- Parsing
 
--- | Parse a phylogeny serialised with the Newick format
+-- | Parse a phylogeny serialised with the Newick format.
 -- | Some variations of Newick are also supported.
 parseNewick :: String -> Either ParseError Phylogeny
 parseNewick input = Phylogeny <$> Internal.parseNewick input
