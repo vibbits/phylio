@@ -1,3 +1,5 @@
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vibbits/phylio/Test%20CI?style=for-the-badge)
+
 # Phylio
 Read, write, and manipulate phylogenetic trees.
 
