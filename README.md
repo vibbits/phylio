@@ -1,4 +1,6 @@
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vibbits/phylio/Test%20CI?style=for-the-badge)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vibbits/phylio/Test%20CI?style=flat)
+![Phylio on Pursuit](https://pursuit.purescript.org/packages/purescript-phylio/badge)
+![Phylio on NPM](https://img.shields.io/npm/v/@vibbioinfocore/phylio)
 
 # Phylio
 Read, write, and manipulate phylogenetic trees.
