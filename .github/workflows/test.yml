@@ -26,3 +26,7 @@ jobs:
       - run: npm run lint
       - run: npm run build:debug
       - run: npm test
+      - run: npx spago -x javascript.dhall build -u '-o ps_output --codegen corefn'
+      - uses: MaybeJustJames/zephyr-action@v1
+        with:
+          args: "-f -e -i ps_output -g 'corefn' Bio.Phylogeny JsLib"
