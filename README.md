@@ -1,3 +1,4 @@
+[![Pursuit documentation](https://img.shields.io/badge/documentation-Pursuit-c43953a)](https://pursuit.purescript.org/packages/purescript-phylio)
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vibbits/phylio/Test%20CI?style=flat)
 ![Phylio on Pursuit](https://pursuit.purescript.org/packages/purescript-phylio/badge)
 ![Phylio on NPM](https://img.shields.io/npm/v/@vibbioinfocore/phylio)
