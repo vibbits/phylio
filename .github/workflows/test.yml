@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --timing
       - run: npm run lint
       - run: npm run build:debug
       - run: npm test
