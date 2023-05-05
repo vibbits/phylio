@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2023-05-05
+### Changed
+- Updated dependencies
+- Fixed some issues with the Javascript interface
+
 ## [1.0.1] - 2022-08-31
 ### Changed
 - Updated dependencies
@@ -19,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GraphViz DOT output
 - Query nodes and edges
 
-[Unreleased]: https://github.com/vibbits/phylio/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/vibbits/phylio/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/vibbits/phylio/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/vibbits/phylio/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/vibbits/phylio/releases/tag/v1.0.0
