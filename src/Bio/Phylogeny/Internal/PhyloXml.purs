@@ -49,6 +49,20 @@ newtype XmlNode = XmlNode
 
 derive instance eqXmlNode :: Eq XmlNode
 
+instance showXmlNode :: Show XmlNode where
+  show (XmlNode { name, value: Just v }) = name <> "=\"" <> v <> "\""
+  show (XmlNode { name, attributes })
+    | M.isEmpty attributes = name
+    | otherwise = name <> ": " <> myShow attributes
+        where
+        myShow :: M.Map String Attribute -> String
+        myShow attrs = "{"
+          <>
+            ( foldl (\acc (k /\ v) -> acc <> " " <> k <> ": " <> show v) "" $
+                (M.toUnfoldable attrs :: Array (Tuple String Attribute))
+            )
+          <> "}"
+
 parsePhyloXml :: String -> Either ParseError Phylogeny
 parsePhyloXml input = runParser input phyloXmlParser
 
@@ -57,15 +71,14 @@ phyloXmlParser = do
   tree' <- phyloxml
   case convert tree' of
     Right { meta, trees } -> do
+      let withRefs = foldl updateRefs mempty trees
       pure
-        $ toAnnotatedPhylogeny meta
-        $ foldl
-            ( \acc@(PartialPhylogeny { maxRef }) p ->
-                acc <> interpretIntermediate (maxRef + 1) p
-            )
-            mempty
-            trees
+        $ toAnnotatedPhylogeny meta withRefs
     Left err -> fail err
+  where
+  updateRefs :: PartialPhylogeny -> Tree PartialNode -> PartialPhylogeny
+  updateRefs acc@(PartialPhylogeny { maxRef }) p =
+    acc <> interpretIntermediate (maxRef + 1) p
 
 branchLength :: M.Map String Attribute -> Maybe Number
 branchLength attrs =
