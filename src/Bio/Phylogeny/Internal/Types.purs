@@ -32,7 +32,7 @@ import Data.List as L
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Data.Tuple (Tuple, uncurry)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Parsing (ParserT)
 
@@ -43,7 +43,7 @@ data Event
   | LateralGeneTransfer
   | Recombination
 
-derive instance eqNodeType :: Eq Event
+derive instance eqEvent :: Eq Event
 
 eventToString :: Event -> String
 eventToString Clade = "Clade"
@@ -51,6 +51,9 @@ eventToString Taxa = "Taxa"
 eventToString Hybrid = "Hybrid"
 eventToString LateralGeneTransfer = "LateralGeneTransfer"
 eventToString Recombination = "Recombination"
+
+instance showEvent :: Show Event where
+  show = eventToString
 
 type NodeName = String
 
@@ -136,6 +139,13 @@ data Tree a
   | Internal a (Array (Tree a))
 
 derive instance eqTree :: Eq a => Eq (Tree a)
+
+instance showTree :: Show a => Show (Tree a) where
+  show (Leaf l) = "L: " <> show l
+  show (Internal v children) = "(I:" <> show v <> toStr children <> ")"
+    where
+    toStr :: forall x. Show x => Array x -> String
+    toStr xs = foldl (\acc x -> acc <> " " <> show x) "" xs
 
 instance functorTree :: Functor Tree where
   map f (Leaf n) = Leaf (f n)
@@ -238,12 +248,12 @@ toPhylogeny (PartialPhylogeny phylogeny) =
 
 toAnnotatedPhylogeny :: Array Metadata -> PartialPhylogeny -> Phylogeny
 toAnnotatedPhylogeny metadata (PartialPhylogeny phylogeny) =
-  { metadata: uncurry mergeMetadata <$> A.zip metadata phylogeny.metadata
+  { metadata: mergeMetadata <$> A.zip metadata phylogeny.metadata
   , network: fromMap phylogeny.network
   }
   where
-  mergeMetadata :: Metadata -> Metadata -> Metadata
-  mergeMetadata a b =
+  mergeMetadata :: Tuple Metadata Metadata -> Metadata
+  mergeMetadata (Tuple a b) =
     { name: a.name <|> b.name
     , parent: max a.parent b.parent
     , rooted: a.rooted || b.rooted
