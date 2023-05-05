@@ -4,10 +4,11 @@
 
 import test from "ava";
 
-import { parse, vertices } from "../../js/main.js";
+import { edges, parse, roots, vertices } from "../../js/main.js";
 
 test("Can parse semicolon phylogeny", (t) => {
-  t.deepEqual(vertices(parse(";")), [
+  const phy = parse(";");
+  t.deepEqual(vertices(phy), [
     {
       name: "",
       event: "Taxa",
@@ -16,6 +17,8 @@ test("Can parse semicolon phylogeny", (t) => {
       attributes: new Map(),
     },
   ]);
+  t.deepEqual(edges(phy), []);
+  t.deepEqual(roots(phy), [0]);
 });
 
 test("Can parse empty phylogeny", (t) => {

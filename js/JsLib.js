@@ -42,10 +42,17 @@ export const _mkTaxa = (name, event, branchLength, ref, attributes) => {
   };
 };
 
-export const mkError = (message) => {
-  return { tag: "error", message };
+export const _mkMeta = (name) => (description) => (parent) => (rooted) => {
+  return { name, description, parent, rooted };
 };
 
-export const mkSuccess = (value) => {
-  return { tag: "success", value };
+export const _mkPhylogeny = (metadata) => (nodes) => (edges) => {
+  return {
+    tag: "success",
+    value: { metadata, nodes, edges },
+  };
+};
+
+export const _mkError = (message) => {
+  return { tag: "error", message };
 };

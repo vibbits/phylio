@@ -99,12 +99,7 @@ in  upstream
 -------------------------------
 -}
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20220822/packages.dhall
-        sha256:908b4ffbfba37a0a4edf806513a555d0dbcdd0cde7abd621f8d018d2e8ecf828
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.8-20230503/packages.dhall
+        sha256:b0ca02f2efb206465b499ee847f174212be0c8c2e031044b7bd192d5294f22cb
 
 in  upstream
-  with graphs =
-    { dependencies = [ "catenable-lists", "ordered-collections" ]
-    , repo = "https://github.com/purescript/purescript-graphs.git"
-    , version = "v8.1.0"
-    }

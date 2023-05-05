@@ -2,12 +2,7 @@
  * JavaScript entrypoint to the Phylio phylogeny library
  */
 
-//@ts-ignore - This PureScript import should be safe
-import { roots as roots_ } from "../output/Bio.Phylogeny/index.js";
-
 import {
-  edges as edges_,
-  vertices as vertices_,
   parse as parse_,
   //@ts-ignore - This Purescript import should be safe
 } from "../output/JsLib/index.js";
@@ -17,11 +12,6 @@ export interface Metadata {
   parent: number;
   rooted: boolean;
   description: string | undefined;
-}
-
-export interface Phylogeny {
-  metadata: Array<Metadata>;
-  network: unknown;
 }
 
 export type Event =
@@ -46,23 +36,33 @@ export interface Taxa {
   attributes: Map<string, Attribute>;
 }
 
+export interface Edge {
+  source: number;
+  sink: number;
+}
+
+export interface Phylogeny {
+  metadata: Array<Metadata>;
+  nodes: Array<Taxa>;
+  edges: Array<Edge>;
+}
+
 type Result<T> =
   | { tag: "error"; message: string }
   | { tag: "success"; value: T };
 
 export const parse = (text: string): Phylogeny => {
-  const res: Result<unknown> = parse_(text);
+  const res: Result<Phylogeny> = parse_(text);
   if (res.tag === "error") {
     throw new Error(res.message);
   }
 
-  return res.value as Phylogeny;
+  return res.value;
 };
 
-export const edges = (
-  graph: unknown,
-): Array<{ source: number; sink: number }> => edges_(graph);
+export const edges = (phylogeny: Phylogeny): Array<Edge> => phylogeny.edges;
 
-export const vertices = (graph: unknown): Array<Taxa> => vertices_(graph);
+export const vertices = (phylogeny: Phylogeny): Array<Taxa> => phylogeny.nodes;
 
-export const roots = (graph: unknown): Array<number> => roots_(graph);
+export const roots = (phylogeny: Phylogeny): Array<number> =>
+  phylogeny.metadata.map((meta) => meta.parent);

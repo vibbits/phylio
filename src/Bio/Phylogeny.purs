@@ -2,6 +2,7 @@ module Bio.Phylogeny
   ( module Bio.Phylogeny.Internal.Attributes
   , Taxa
   , Phylogeny(Phylogeny)
+  , Metadata
   , attributes
   , dot
   , edges
@@ -12,6 +13,7 @@ module Bio.Phylogeny
   , parsePhyloXml
   , reportError
   , vertices
+  , meta
   ) where
 
 import Prelude
@@ -21,7 +23,8 @@ import Bio.Phylogeny.Internal.Newick (parseNewick) as Internal
 import Bio.Phylogeny.Internal.Nexus (parseNexus) as Internal
 import Bio.Phylogeny.Internal.PhyloXml (parsePhyloXml) as Internal
 import Bio.Phylogeny.Internal.Types
-  ( NodeIdentifier
+  ( Metadata
+  , NodeIdentifier
   , Phylogeny
   , PhylogenyNode(..)
   ) as Internal
@@ -40,6 +43,9 @@ import Parsing (ParseError(..), Position(..))
 
 -- | A node in the phylogeny graph.
 type Taxa = Internal.PhylogenyNode
+
+-- | Metatdata about a specific phylogeny
+type Metadata = Internal.Metadata
 
 -- | An edge between nodes in the phylogeny graph.
 -- | The first value is the source and the second is the sink.
@@ -64,6 +70,10 @@ instance showPhylogeny :: Show Phylogeny where
 -- | Given a `Phylogeny` get the `Graph` representation
 graph :: Phylogeny -> G.Graph Internal.NodeIdentifier Internal.PhylogenyNode
 graph (Phylogeny { network }) = network
+
+-- | The metadata for each tree in this `Phylogeny`.
+meta :: Phylogeny -> Array Metadata
+meta (Phylogeny { metadata }) = metadata
 
 -- | Get the root for each tree in a `Phylogeny`.
 roots :: Phylogeny -> Array Internal.NodeIdentifier
