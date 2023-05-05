@@ -1,6 +1,6 @@
 {
   "name": "@vibbioinfocore/phylio",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Read, write, and manipulate phylogenetic trees",
   "main": "dist/index.js",
   "type": "module",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build:debug": "spago -x javascript.dhall build && node ./build-debug.js",
-    "build:prod": "spago -x javascript.dhall build -u '-o ps_output --codegen corefn' && zephyr -f -e -i ps_output -g 'corefn' Bio.Phylogeny JsLib && purs-backend-es build --int-tags --corefn-dir dce-output --output-dir output && node ./build.js && npm-dts generate --entry js/main.ts -L debug -o dist/index.d.ts",
+    "build:prod": "spago -x javascript.dhall build -u '-o ps_output --codegen corefn' && purs-backend-es build --int-tags --corefn-dir ps_output --output-dir output && node ./build.js && npm-dts generate --entry js/main.ts -L debug -o dist/index.d.ts",
     "test": "spago -x test.dhall test && npm run js:test",
     "js:test": "spago -x javascript.dhall build && ava",
     "lint": "tsc --noEmit && eslint 'js/**/*.ts' 'test/js/**/*.ts'",

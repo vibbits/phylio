@@ -6,6 +6,7 @@ var shared = {
   bundle: true,
   minify: true,
   platform: "neutral",
+  format: "esm",
   external: pkg.dependencies ? Object.keys(pkg.dependencies) : [],
 };
 
