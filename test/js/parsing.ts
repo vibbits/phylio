@@ -70,3 +70,39 @@ test("Throws when missing opening paren", (t) => {
 test("Throws when missing closing semicolon", (t) => {
   t.throws(() => parse("()"), { instanceOf: Error });
 });
+
+test("Can parse phyloxml", (t) => {
+  const text =
+    '<phyloxml><phylogeny rooted=\'true\'><clade name="A"><clade><name>B</name><clade name="C" /><clade name="D" /></clade></clade></phylogeny></phyloxml>';
+  const phy = parse(text);
+  t.deepEqual(vertices(phy), [
+    {
+      name: "A",
+      event: "Clade",
+      branchLength: 0,
+      ref: 1,
+      attributes: new Map(),
+    },
+    {
+      name: "B",
+      event: "Clade",
+      branchLength: 0,
+      ref: 2,
+      attributes: new Map(),
+    },
+    {
+      name: "C",
+      event: "Taxa",
+      branchLength: 0,
+      ref: 3,
+      attributes: new Map(),
+    },
+    {
+      name: "D",
+      event: "Taxa",
+      branchLength: 0,
+      ref: 4,
+      attributes: new Map(),
+    },
+  ]);
+});

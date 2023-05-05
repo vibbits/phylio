@@ -5,6 +5,7 @@ import Prelude
 import Bio.Phylogeny
   ( Attribute(..)
   , attributes
+  , edges
   , lookupNode
   , parsePhyloXml
   , reportError
@@ -28,6 +29,58 @@ specs = do
     it "Parses an empty tree" do
       text <- readTextFile UTF8 $ testDir </> "phyloxml_example1.xml"
       expectFail "No trees in this PhyloXML document" $ parsePhyloXml text
+
+    it "Parses a single node tree" do
+      let text = "<phyloxml><phylogeny><clade><name>A</name></clade></phylogeny></phyloxml>"
+      let phylogeny = parsePhyloXml text
+
+      (A.length <<< roots <$> phylogeny)
+        `shouldEqual`
+          (Right 1)
+
+      case phylogeny of
+        Right phylogeny' ->
+          (nodeName <$> (A.catMaybes (lookupNode phylogeny' <$> (roots phylogeny'))))
+            `shouldEqual`
+              [ ("A" /\ 0.0) ]
+        Left err -> fail $ reportError "" err
+
+    it "Parses a single node tree with name attribute" do
+      let text = "<phyloxml><phylogeny><clade name=\"A\" /></phylogeny></phyloxml>"
+      let phylogeny = parsePhyloXml text
+
+      (A.length <<< roots <$> phylogeny)
+        `shouldEqual`
+          (Right 1)
+
+      case phylogeny of
+        Right phylogeny' ->
+          (nodeName <$> (A.catMaybes (lookupNode phylogeny' <$> (roots phylogeny'))))
+            `shouldEqual`
+              [ ("A" /\ 0.0) ]
+        Left err -> fail $ reportError "" err
+
+    it "Parses a 4 node tree with a fork" do
+      let
+        text =
+          "<phyloxml><phylogeny rooted=\'true\'><clade name=\"A\"><clade><name>B</name></clade></clade></phylogeny></phyloxml>"
+      let phylogeny = parsePhyloXml text
+
+      (A.length <<< roots <$> phylogeny)
+        `shouldEqual`
+          (Right 1)
+
+      case phylogeny of
+        Right phylogeny' -> do
+          (nodeName <$> vertices phylogeny')
+            `shouldEqual`
+              [ ("A" /\ 0.0)
+              , ("B" /\ 0.0)
+              ]
+          edges phylogeny'
+            `shouldEqual`
+              [ (1 /\ 2) ]
+        Left err -> fail $ reportError "" err
 
     it "Parses the PhyloXML example" do
       text <- readTextFile UTF8 $ testDir </> "phyloxml_example2.xml"

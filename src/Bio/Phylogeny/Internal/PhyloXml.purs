@@ -391,7 +391,7 @@ toStructuralTree (Internal p@(XmlNode node) children) =
   -- Structural elements form the phylogeny,
   -- all other elements are attributes.
   isStructuralElement :: Tree XmlNode -> Boolean
-  isStructuralElement (Leaf _) = false
+  isStructuralElement (Leaf (XmlNode { name })) = name == "clade"
   isStructuralElement (Internal (XmlNode { name }) _) =
     A.elem name [ "phyloxml", "phylogeny", "clade" ]
 
