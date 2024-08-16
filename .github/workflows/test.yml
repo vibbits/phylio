@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16, 18, 20]
+        node-version: [20, 22]
 
     steps:
       - uses: actions/checkout@v3
@@ -27,12 +27,8 @@ jobs:
       - run: npm ci --timing
       - run: npm run lint
       - run: npm run build:debug
-      - name: "Run tests on Node 20"
+      - name: "Run tests"
         run: npm test
-        if: matrix.node-version == 20
         env:
-          NODE_OPTIONS: "--loader=tsx"
-      - name: "Run tests on Node < 20"
-        run: npm test
-        if: matrix.node-version < 20
+          NODE_OPTIONS: "--import=./register.js"
 ...
