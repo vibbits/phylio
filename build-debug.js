@@ -1,7 +1,7 @@
 import { buildSync } from "esbuild";
 import npmDts from "npm-dts";
 
-import pkg from "./package.json" assert { type: "json" };
+import pkg from "./package.json" with { type: "json" };
 
 var shared = {
   entryPoints: ["js/main.ts"],
