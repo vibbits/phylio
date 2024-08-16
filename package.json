@@ -59,7 +59,7 @@
     "spago": "^0.21.0",
     "ts-node": "10.9.1",
     "tsx": "^3.12.7",
-    "typescript": "5.0.4"
+    "typescript": "5.5.4"
   },
   "ava": {
     "extensions": {
